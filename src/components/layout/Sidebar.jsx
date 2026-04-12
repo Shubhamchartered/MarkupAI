@@ -46,10 +46,10 @@ export default function Sidebar() {
             <UsersThree />
             <span>Client</span>
             <span className="nav-badge">381</span>
-            <CaretDown className="nav-caret" style={{ transform: clientOpen ? 'rotate(180deg)' : 'none' }} />
+            <CaretDown className={`nav-caret ${clientOpen ? 'open' : ''}`} />
           </button>
           
-          <div className="nav-submenu" style={{ display: clientOpen ? 'block' : 'none' }}>
+          <div className={`nav-submenu ${clientOpen ? 'open' : ''}`}>
             <Link href="/clients" className={`nav-link nav-sub ${pathname === '/clients' ? 'active' : ''}`}>
               <UserList />
               <span>All Clients</span>

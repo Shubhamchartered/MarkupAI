@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MARKUP GST Pro — Client Dashboard</title>
+  <meta name="description" content="MARKUP GST Pro — Premium GST client management dashboard for tax professionals. Manage clients, GSTINs, and legal matters.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1/src/index.js" defer></script>
+  <!-- Real client data (381 records from GST DB.xlsx) -->
+  <script src="client_data.js"></script>
+  <!-- GST Litigation Module -->
+  <script src="notices_data.js"></script>
+  <script src="drafting_engine.js"></script>
+  <!-- Matter Record 10-Section Engine -->
+  <script src="matter_engine.js"></script>
+  <!-- Client Communication Alert Engine -->
+  <script src="comms_engine.js"></script>
+  <!-- GST AI Intelligence Engine -->
+  <script src="ai_engine.js"></script>
+</head>
+<body>
+
+  <div class="layout">
+
+    <!-- ═══════════════════  SIDEBAR  ═══════════════════ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon"><i class="ph-bold ph-receipt"></i></div>
+        <div class="brand-text">
+          <span class="brand-name">MARKUP</span>
+          <span class="brand-sub">GST Pro</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav" id="mainNav">
+        <div class="nav-section-label">MAIN MENU</div>
+
+        <!-- 1. AI Engine -->
+        <a href="#" class="nav-link" id="nav-ai">
+          <i class="ph ph-brain"></i>
+          <span>AI Engine</span>
+          <span class="nav-badge" style="background:linear-gradient(135deg,#6366F1,#8B5CF6)">AI</span>
+        </a>
+
+        <!-- 2. Dashboard -->
+        <a href="#" class="nav-link active" id="nav-dashboard">
+          <i class="ph ph-squares-four"></i>
+          <span>Dashboard</span>
+        </a>
+
+        <!-- 3. Client (collapsible group) -->
+        <div class="nav-group" id="navGroupClient">
+          <button class="nav-link nav-group-toggle" id="navClientToggle">
+            <i class="ph ph-users-three"></i>
+            <span>Client</span>
+            <span class="nav-badge">381</span>
+            <i class="ph ph-caret-down nav-caret" id="navClientCaret"></i>
+          </button>
+          <div class="nav-submenu" id="navClientSubmenu">
+            <a href="#" class="nav-link nav-sub" id="nav-clients">
+              <i class="ph ph-user-list"></i>
+              <span>All Clients</span>
+            </a>
+            <a href="#" class="nav-link nav-sub" id="nav-notices">
+              <i class="ph ph-warning-octagon"></i>
+              <span>Notices</span>
+              <span class="nav-badge danger" id="noticeBadge">8</span>
+            </a>
+            <a href="#" class="nav-link nav-sub" id="nav-legal">
+              <i class="ph ph-scales"></i>
+              <span>Litigation Drafts</span>
+            </a>
+            <a href="#" class="nav-link nav-sub" id="nav-comms">
+              <i class="ph ph-chat-circle-dots"></i>
+              <span>Client Alerts</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="nav-section-label" style="margin-top:1.5rem">SYSTEM</div>
+        <a href="#" class="nav-link">
+          <i class="ph ph-export"></i>
+          <span>Export Data</span>
+        </a>
+        <a href="#" class="nav-link">
+          <i class="ph ph-gear"></i>
+          <span>Settings</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <img src="https://ui-avatars.com/api/?name=CA+Admin&background=4f46e5&color=fff&size=40" alt="Admin">
+          <div>
+            <div class="su-name">CA Admin</div>
+            <div class="su-role">Tax Professional</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ═══════════════════  MAIN  ═══════════════════ -->
+    <div class="main-wrapper">
+
+      <!-- TOPBAR -->
+      <header class="topbar" id="topbar">
+        <button class="sidebar-toggle" id="sidebarToggle">
+          <i class="ph ph-list"></i>
+        </button>
+
+        <div class="search-wrap">
+          <i class="ph ph-magnifying-glass"></i>
+          <input type="text" id="globalSearch" placeholder="Search clients, User ID, GSTN…" autocomplete="off" />
+          <kbd>⌘K</kbd>
+        </div>
+
+        <div class="topbar-right">
+          <button class="icon-btn" id="themeToggle" title="Toggle Theme">
+            <i class="ph ph-sun" id="themeIcon"></i>
+          </button>
+          <button class="icon-btn notif-btn" title="Notifications">
+            <i class="ph ph-bell"></i>
+            <span class="notif-dot"></span>
+          </button>
+          <div class="topbar-user">
+            <img src="https://ui-avatars.com/api/?name=CA+Admin&background=4f46e5&color=fff&size=36" alt="User">
+            <span>CA Admin</span>
+            <i class="ph ph-caret-down"></i>
+          </div>
+        </div>
+      </header>
+
+      <!-- SCROLLABLE CONTENT -->
+      <div class="content-area" id="contentArea">
+
+        <!-- ── DASHBOARD VIEW ── -->
+        <section class="view active" id="view-dashboard">
+          <div class="page-header">
+            <div>
+              <h1>Dashboard Overview</h1>
+              <p>Real-time insight across all 381 clients in MARKUP GST Pro.</p>
+            </div>
+            <div class="header-actions">
+              <span class="date-badge"><i class="ph ph-calendar-blank"></i> <span id="dateLabel"></span></span>
+              <button class="btn-primary" id="addClientBtn"><i class="ph ph-plus"></i> Add Client</button>
+            </div>
+          </div>
+
+          <!-- KPI Cards -->
+          <div class="kpi-grid">
+            <div class="kpi-card kpi-blue">
+              <div class="kpi-icon"><i class="ph ph-users-three"></i></div>
+              <div class="kpi-body">
+                <p>Total Clients</p>
+                <h2 id="kpiClients">381</h2>
+                <span class="kpi-trend up"><i class="ph ph-arrow-up-right"></i> Active in DB</span>
+              </div>
+              <div class="kpi-sparkline"></div>
+            </div>
+            <div class="kpi-card kpi-indigo">
+              <div class="kpi-icon"><i class="ph ph-buildings"></i></div>
+              <div class="kpi-body">
+                <p>Active GSTINs</p>
+                <h2 id="kpiGstins">381</h2>
+                <span class="kpi-trend up"><i class="ph ph-arrow-up-right"></i> Registered</span>
+              </div>
+            </div>
+            <div class="kpi-card kpi-danger">
+              <div class="kpi-icon"><i class="ph ph-warning-circle"></i></div>
+              <div class="kpi-body">
+                <p>Critical Notices</p>
+                <h2>24</h2>
+                <span class="kpi-trend down"><i class="ph ph-arrow-down-right"></i> Action needed</span>
+              </div>
+            </div>
+            <div class="kpi-card kpi-amber">
+              <div class="kpi-icon"><i class="ph ph-clock-countdown"></i></div>
+              <div class="kpi-body">
+                <p>Pending Returns</p>
+                <h2>142</h2>
+                <span class="kpi-trend neutral"><i class="ph ph-minus"></i> Due in 3 days</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Stats Row -->
+          <div class="quick-stats">
+            <div class="qs-box">
+              <i class="ph ph-check-circle"></i>
+              <div>
+                <span class="qs-val" id="qsActive">—</span>
+                <span class="qs-label">Clients with GSTN</span>
+              </div>
+            </div>
+            <div class="qs-box">
+              <i class="ph ph-x-circle"></i>
+              <div>
+                <span class="qs-val" id="qsMissing">—</span>
+                <span class="qs-label">Missing GSTN</span>
+              </div>
+            </div>
+            <div class="qs-box">
+              <i class="ph ph-key"></i>
+              <div>
+                <span class="qs-val" id="qsWithPass">—</span>
+                <span class="qs-label">With Credentials</span>
+              </div>
+            </div>
+            <div class="qs-box">
+              <i class="ph ph-chart-bar"></i>
+              <div>
+                <span class="qs-val">Maharashtra</span>
+                <span class="qs-label">Primary State (27)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ──── AI Intelligence Engine Widget ──── -->
+          <div class="ai-home-widget">
+            <!-- Widget Header -->
+            <div class="ai-hw-header">
+              <div class="ai-hw-left">
+                <div class="ai-hw-icon">⚖️</div>
+                <div>
+                  <div class="ai-hw-title">GST Intelligence Engine</div>
+                  <div class="ai-hw-sub">RESEARCH · DRAFT · ANALYSE · SEARCH</div>
+                </div>
+              </div>
+              <button id="homeAiOpenBtn" class="ai-hw-open-btn">Open Full Engine <i class="ph ph-arrow-right"></i></button>
+            </div>
+
+            <!-- No API Key banner (shown until key is set) -->
+            <div class="ai-hw-nobanner" id="homeAiBanner">
+              <i class="ph ph-key"></i>
+              <span>Anthropic API key not configured — <button id="homeAiBannerSetup" style="background:none;border:none;color:#fff;font-weight:700;cursor:pointer;text-decoration:underline;font-family:inherit;font-size:inherit">Set up now →</button></span>
+            </div>
+
+            <!-- Quick Action Chips -->
+            <div class="ai-hw-chips-label">QUICK ACTIONS</div>
+            <div id="homeAiQP" class="ai-hw-chips"></div>
+
+            <!-- Mini Input -->
+            <div class="ai-hw-input-row">
+              <input type="text" id="homeAiInput" class="ai-hw-input" placeholder="Ask about any GST section, draft a notice reply, research an issue...">
+              <button id="homeAiSend" class="ai-hw-send">↑</button>
+            </div>
+          </div>
+
+          <!-- Recent clients preview in dashboard -->
+          <div class="section-card">
+            <div class="sc-header">
+              <h2>Recent Clients <span class="sc-count" id="dashRecentCount"></span></h2>
+              <a href="#" class="sc-link" id="viewAllLink">View All Clients →</a>
+            </div>
+            <div class="table-wrap">
+              <table id="dashTable">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>User Name</th>
+                    <th>User ID</th>
+                    <th>Password</th>
+                    <th>GSTN</th>
+                    <th>State</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="dashTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── CLIENTS VIEW ── -->
+        <section class="view" id="view-clients">
+          <div class="page-header">
+            <div>
+              <h1>Client Master Data</h1>
+              <p>All <strong id="clientTotalLabel">381</strong> clients imported from GST DB.xlsx</p>
+            </div>
+            <div class="header-actions">
+              <button class="btn-secondary" id="exportBtn"><i class="ph ph-download-simple"></i> Export CSV</button>
+              <button class="btn-primary"><i class="ph ph-plus"></i> Add Client</button>
+            </div>
+          </div>
+
+          <!-- Filter / Search bar -->
+          <div class="filter-bar">
+            <div class="fb-search">
+              <i class="ph ph-magnifying-glass"></i>
+              <input type="text" id="tableSearch" placeholder="Search by name, User ID, GSTN…" />
+            </div>
+            <div class="fb-right">
+              <select id="stateFilter">
+                <option value="">All States</option>
+              </select>
+              <div class="page-size-select">
+                Show
+                <select id="pageSizeSelect">
+                  <option value="25" selected>25</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                  <option value="all">All</option>
+                </select>
+                entries
+              </div>
+            </div>
+          </div>
+
+          <!-- Main Table -->
+          <div class="section-card no-pad">
+            <div class="table-wrap">
+              <table id="clientTable">
+                <thead>
+                  <tr>
+                    <th class="th-num">#</th>
+                    <th data-sort="userName" class="sortable">User Name <i class="ph ph-arrows-down-up"></i></th>
+                    <th data-sort="userId" class="sortable">User ID <i class="ph ph-arrows-down-up"></i></th>
+                    <th>Password</th>
+                    <th data-sort="gstn" class="sortable">GSTN <i class="ph ph-arrows-down-up"></i></th>
+                    <th>State</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="clientTableBody"></tbody>
+              </table>
+            </div>
+            <div class="table-footer">
+              <span id="tableInfo">Showing 0 of 0 entries</span>
+              <div class="pagination" id="pagination"></div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ── NOTICES VIEW ── -->
+        <section class="view" id="view-notices">
+          <div class="page-header">
+            <div>
+              <h1>GST Notices &amp; Orders</h1>
+              <p>Manage, track and draft replies for all active notices across clients.</p>
+            </div>
+            <div class="header-actions">
+              <select id="noticeTypeFilter" class="filter-select">
+                <option value="">All Types</option>
+                <option value="SCN">SCN (Show Cause)</option>
+                <option value="ASMT-10">ASMT-10 (Scrutiny)</option>
+                <option value="ADT-02">ADT-02 (Audit)</option>
+                <option value="GSTR-3A">GSTR-3A (Default)</option>
+              </select>
+              <select id="noticeStatusFilter" class="filter-select">
+                <option value="">All Status</option>
+                <option value="Critical">Critical</option>
+                <option value="Open">Open</option>
+                <option value="Replied">Replied</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Notice KPIs -->
+          <div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-bottom:1.5rem">
+            <div class="kpi-card kpi-danger">
+              <div class="kpi-icon"><i class="ph ph-warning-octagon"></i></div>
+              <div class="kpi-body"><p>Critical</p><h2 id="nKpiCritical">0</h2></div>
+            </div>
+            <div class="kpi-card kpi-blue">
+              <div class="kpi-icon"><i class="ph ph-envelope-open"></i></div>
+              <div class="kpi-body"><p>Open</p><h2 id="nKpiOpen">0</h2></div>
+            </div>
+            <div class="kpi-card kpi-indigo">
+              <div class="kpi-icon"><i class="ph ph-check-square"></i></div>
+              <div class="kpi-body"><p>Replied</p><h2 id="nKpiReplied">0</h2></div>
+            </div>
+            <div class="kpi-card kpi-amber">
+              <div class="kpi-icon"><i class="ph ph-currency-inr"></i></div>
+              <div class="kpi-body"><p>Total Demand</p><h2 id="nKpiDemand">—</h2></div>
+            </div>
+          </div>
+
+          <div class="section-card no-pad">
+            <div class="sc-header">
+              <h2>Active Notices <span class="sc-count" id="noticeCount">0</span></h2>
+            </div>
+            <div class="table-wrap">
+              <table id="noticesTable">
+                <thead>
+                  <tr>
+                    <th>Notice No.</th>
+                    <th>Client / GSTIN</th>
+                    <th>Type / Form</th>
+                    <th>Section</th>
+                    <th>Issue Date</th>
+                    <th>Due Date</th>
+                    <th>Demand</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="noticesTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── LEGAL / DRAFTS VIEW ── -->
+        <section class="view" id="view-legal">
+          <div class="page-header">
+            <div>
+              <h1>Litigation Draft Centre</h1>
+              <p>AI-assisted department-ready reply drafts. Review all markers before filing.</p>
+            </div>
+          </div>
+
+          <div class="drafts-grid" id="draftsGrid">
+            <!-- Draft cards rendered by JS -->
+          </div>
+        </section>
+
+        <!-- ── MATTER RECORD VIEW ── -->
+        <section class="view" id="view-matter">
+          <div class="page-header">
+            <div>
+              <h1>Matter Record</h1>
+              <p>Complete the intake form to generate a department-ready GST reply tailored to your chosen strategy.</p>
+            </div>
+            <div class="header-actions">
+              <button class="btn-secondary" id="clearMatterBtn"><i class="ph ph-trash"></i> Clear Form</button>
+              <button class="btn-primary" id="generateMatterBtn"><i class="ph ph-file-code"></i> Generate Strategy Draft</button>
+            </div>
+          </div>
+
+          <!-- Step Tabs -->
+          <div class="matter-tabs">
+            <button class="mtab active" data-tab="mt-client"><i class="ph ph-user-circle"></i> Client Profile</button>
+            <button class="mtab" data-tab="mt-notice"><i class="ph ph-warning-octagon"></i> Notice Details</button>
+            <button class="mtab" data-tab="mt-allegations"><i class="ph ph-scales"></i> Allegations</button>
+            <button class="mtab" data-tab="mt-facts"><i class="ph ph-notepad"></i> Client Facts</button>
+            <button class="mtab" data-tab="mt-docs"><i class="ph ph-folder-open"></i> Documents</button>
+            <button class="mtab" data-tab="mt-strategy"><i class="ph ph-lightning"></i> Strategy & Output</button>
+          </div>
+
+          <!-- ── TAB: Client Profile ── -->
+          <div class="matter-tab-panel active" id="mt-client">
+            <div class="mf-grid">
+              <div class="mf-group span2">
+                <label class="mf-label">Matter ID / Reference Number</label>
+                <input type="text" class="mf-input" id="mf-matterId" placeholder="e.g. GST/MH/2024/001">
+              </div>
+              <div class="mf-group span2">
+                <label class="mf-label">Legal Name <span class="mf-req">*</span></label>
+                <input type="text" class="mf-input" id="mf-legalName" placeholder="As per GST registration" list="clientNameList">
+                <datalist id="clientNameList"></datalist>
+              </div>
+              <div class="mf-group span2">
+                <label class="mf-label">GSTIN <span class="mf-req">*</span></label>
+                <input type="text" class="mf-input" id="mf-gstin" placeholder="27XXXXX0000X1ZX" maxlength="15">
+              </div>
+              <div class="mf-group span2">
+                <label class="mf-label">Trade Name (if different)</label>
+                <input type="text" class="mf-input" id="mf-tradeName" placeholder="Trade / brand name">
+              </div>
+              <div class="mf-group span2">
+                <label class="mf-label">Business Activity / HSN-SAC</label>
+                <input type="text" class="mf-input" id="mf-businessDesc" placeholder="e.g. Supply of agricultural inputs — HSN 3105">
+              </div>
+              <div class="mf-group">
+                <label class="mf-label">State <span class="mf-req">*</span></label>
+                <select class="mf-select" id="mf-state">
+                  <option value="">— Select State —</option>
+                  <option>Maharashtra</option><option>Gujarat</option><option>Delhi</option>
+                  <option>Karnataka</option><option>Tamil Nadu</option><option>Telangana</option>
+                  <option>Rajasthan</option><option>UP</option><option>MP</option>
+                  <option>West Bengal</option><option>Haryana</option><option>Punjab</option>
+                  <option>Kerala</option><option>Andhra Pradesh</option><option>Odisha</option>
+                  <option>Chhattisgarh</option><option>Jharkhand</option><option>Bihar</option>
+                  <option>Assam</option><option>J&amp;K</option><option>Goa</option><option>Other</option>
+                </select>
+              </div>
+              <div class="mf-group">
+                <label class="mf-label">Registration Type</label>
+                <select class="mf-select" id="mf-regType">
+                  <option value="Regular">Regular</option>
+                  <option value="Composition">Composition</option>
+                  <option value="SEZ Unit">SEZ Unit</option>
+                  <option value="SEZ Developer">SEZ Developer</option>
+                  <option value="Input Service Distributor">Input Service Distributor</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── TAB: Notice Details ── -->
+          <div class="matter-tab-panel" id="mt-notice">
+            <div class="mf-grid">
+              <div class="mf-group">
+                <label class="mf-label">Notice Type <span class="mf-req">*</span></label>
+                <select class="mf-select" id="mf-noticeType">
+                  <option value="">— Select —</option>
+                  <option value="SCN u/s 73">SCN u/s 73 (DRC-01)</option>
+                  <option value="SCN u/s 74">SCN u/s 74 (DRC-01) — Fraud</option>
+                  <option value="DRC-01A">DRC-01A (Pre-SCN Consultation)</option>
+                  <option value="ASMT-10">ASMT-10 (Scrutiny of Returns)</option>
+                  <option value="ADT-02">ADT-02 (GST Audit)</option>
+                  <option value="GSTR-3A">GSTR-3A (Default Notice)</option>
+                  <option value="Summons u/s 70">Summons u/s 70</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="mf-group">
+                <label class="mf-label">Section(s) Invoked <span class="mf-req">*</span></label>
+                <input type="text" class="mf-input" id="mf-sectionInvoked" placeholder="e.g. 73, 50, 17(5)">
+              </div>
+              <div class="mf-group span2">
+                <label class="mf-label">Notice Number <span class="mf-req">*</span></label>
+                <input type="text" class="mf-input" id="mf-noticeNumber" placeholder="Full reference number from notice">
+              </div>
+              <div class="mf-group">
+                <label class="mf-label">Issue Date <span class="mf-req">*</span></label>
+                <input type="date" class="mf-input" id="mf-issueDate">
+              </div>
+              <div class="mf-group">
+                <label class="mf-label">Due Date for Reply <span class="mf-req">*</span></label>
+                <input type="date" class="mf-input" id="mf-dueDate">
+              </div>
+              <div class="mf-group span2">
+                <label class="mf-label">Issuing Authority (Designation, Circle/Ward, Commissionerate)</label>
+                <input type="text" class="mf-input" id="mf-issuingAuthority" placeholder="e.g. Superintendent, Ward-12, Nagpur Commissionerate">
+              </div>
+              <div class="mf-group">
+                <label class="mf-label">Tax Period — From</label>
+                <input type="text" class="mf-input" id="mf-periodFrom" placeholder="e.g. April 2019">
+              </div>
+              <div class="mf-group">
+                <label class="mf-label">Tax Period — To</label>
+                <input type="text" class="mf-input" id="mf-periodTo" placeholder="e.g. March 2020">
+              </div>
+            </div>
+
+            <!-- Financial Stakes -->
+            <div class="mf-section-heading"><i class="ph ph-currency-inr"></i> Financial Stakes</div>
+            <div class="mf-grid">
+              <div class="mf-group">
+                <label class="mf-label">Tax Demand (₹)</label>
+                <input type="number" class="mf-input" id="mf-taxDemand" placeholder="0.00" min="0">
+              </div>
+              <div class="mf-group">
+                <label class="mf-label">Interest Claimed (₹)</label>
+                <input type="number" class="mf-input" id="mf-interest" placeholder="0.00" min="0">
+              </div>
+              <div class="mf-group">
+                <label class="mf-label">Penalty Proposed (₹)</label>
+                <input type="number" class="mf-input" id="mf-penalty" placeholder="0.00" min="0">
+              </div>
+              <div class="mf-group">
+                <label class="mf-label">Total Exposure (₹)</label>
+                <input type="number" class="mf-input" id="mf-totalExposure" placeholder="Auto-computed" min="0" readonly style="background:var(--bg-elevated)">
+              </div>
+            </div>
+          </div>
+
+          <!-- ── TAB: Allegations ── -->
+          <div class="matter-tab-panel" id="mt-allegations">
+            <div class="mf-section-heading">
+              <i class="ph ph-list-bullets"></i> Issue-wise Allegations
+              <button class="btn-secondary" id="addIssueBtn" style="margin-left:auto;padding:.4rem .9rem;font-size:.82rem"><i class="ph ph-plus"></i> Add Issue</button>
+            </div>
+            <div id="issuesList">
+              <!-- Dynamic issue rows rendered by JS -->
+            </div>
+            <p style="color:var(--text-soft);font-size:.82rem;margin-top:.75rem;padding:.75rem;background:var(--bg-elevated);border-radius:.5rem;border:1px dashed var(--border)">
+              <i class="ph ph-info"></i> Each issue generates a separate sub-section in Section IV of the formal reply.
+              Submissions and reconciliation fields are optional — the engine will flag them as [TO BE DRAFTED].
+            </p>
+          </div>
+
+          <!-- ── TAB: Client Facts ── -->
+          <div class="matter-tab-panel" id="mt-facts">
+            <div class="mf-grid">
+              <div class="mf-group">
+                <label class="mf-label">GSTR-1 Status (relevant period)</label>
+                <select class="mf-select" id="mf-gstr1Status">
+                  <option value="">— Select —</option>
+                  <option>Filed on time</option><option>Filed with delay</option>
+                  <option>Pending</option><option>Amended</option>
+                </select>
+              </div>
+              <div class="mf-group">
+                <label class="mf-label">GSTR-3B Status</label>
+                <select class="mf-select" id="mf-gstr3bStatus">
+                  <option value="">— Select —</option>
+                  <option>Filed on time</option><option>Filed with delay</option>
+                  <option>Pending</option><option>Amended</option>
+                </select>
+              </div>
+              <div class="mf-group">
+                <label class="mf-label">GSTR-9 Status</label>
+                <select class="mf-select" id="mf-gstr9Status">
+                  <option value="">— Select —</option>
+                  <option>Filed</option><option>Pending</option><option>Not Applicable</option>
+                </select>
+              </div>
+              <div class="mf-group">
+                <label class="mf-label">Reconciliation Status</label>
+                <select class="mf-select" id="mf-reconciliationStatus">
+                  <option value="Pending">Pending</option>
+                  <option value="Partial">Partial</option>
+                  <option value="Done">Done — Ready to annex</option>
+                </select>
+              </div>
+              <div class="mf-group span2">
+                <label class="mf-label">Payment Details (challans, dates, amounts)</label>
+                <textarea class="mf-input mf-textarea" id="mf-paymentDetails" rows="3" placeholder="e.g. GST paid via Challan No. XXXX dated DD.MM.YYYY — ₹X,XX,XXX (CGST + SGST)"></textarea>
+              </div>
+              <div class="mf-group span2">
+                <label class="mf-label">ITC Position (claimed, reversed, available)</label>
+                <textarea class="mf-input mf-textarea" id="mf-itcPosition" rows="3" placeholder="e.g. Total ITC availed ₹X,XX,XXX — Reversed ₹X,XXX — Net ITC ₹X,XX,XXX"></textarea>
+              </div>
+              <div class="mf-group span2">
+                <label class="mf-label">Prior Correspondence (reference numbers & dates)</label>
+                <textarea class="mf-input mf-textarea" id="mf-priorCorrespondence" rows="2" placeholder="e.g. Reply letter dated DD.MM.YYYY to SCN No. XXXX — or 'No prior correspondence'"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── TAB: Documents ── -->
+          <div class="matter-tab-panel" id="mt-docs">
+            <div class="mf-section-heading"><i class="ph ph-folder"></i> Document Checklist — Mark Status for Each</div>
+            <div class="doc-checklist" id="docChecklist">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
+
+          <!-- ── TAB: Strategy & Output ── -->
+          <div class="matter-tab-panel" id="mt-strategy">
+            <div class="mf-section-heading"><i class="ph ph-lightning"></i> Draft Strategy</div>
+            <div class="strategy-cards" id="strategyCards">
+              <!-- Rendered by JS -->
+            </div>
+
+            <div class="mf-section-heading" style="margin-top:1.5rem"><i class="ph ph-sliders"></i> Output Configuration</div>
+            <div class="mf-grid">
+              <div class="mf-group">
+                <label class="mf-label">Draft Type</label>
+                <select class="mf-select" id="mf-draftType">
+                  <option value="Formal Reply">Formal Reply to Notice</option>
+                  <option value="Interim Reply">Interim / Preliminary Reply</option>
+                  <option value="Pre-SCN Response">Pre-SCN Consultation Response (DRC-01A)</option>
+                  <option value="Audit Submissions">Audit Submissions</option>
+                </select>
+              </div>
+              <div class="mf-group">
+                <label class="mf-label">Reply Tone</label>
+                <select class="mf-select" id="mf-tone">
+                  <option value="Respectful and corrective">Respectful and corrective</option>
+                  <option value="Detailed and section-heavy">Detailed and section-heavy</option>
+                  <option value="Table-driven">Table-driven and concise</option>
+                  <option value="Assertive and issue-wise">Assertive and issue-wise</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="mf-grid" style="margin-top:1rem">
+              <div class="mf-group span2">
+                <label class="mf-label">Partner / Manager Notes <span style="color:var(--text-soft)">(included in Section IX as additional instructions)</span></label>
+                <textarea class="mf-input mf-textarea" id="mf-additionalInstructions" rows="4" placeholder="e.g. 'Do not mention the prior verbal discussion with DCIT. Focus on documentary evidence. Client is a cooperative society — emphasise charitable nature.'"></textarea>
+              </div>
+              <div class="mf-group span2">
+                <label class="mf-label">Strategy Justification</label>
+                <textarea class="mf-input mf-textarea" id="mf-strategyReason" rows="2" placeholder="e.g. Documents are complete and reconciliation explains the mismatch cleanly."></textarea>
+              </div>
+            </div>
+
+            <div style="margin-top:1.5rem;padding:1.25rem;background:var(--bg-elevated);border:1px solid var(--border);border-radius:.75rem">
+              <div style="font-size:.82rem;font-weight:700;color:var(--text-muted);margin-bottom:.75rem;letter-spacing:.04em">OUTPUT OPTIONS</div>
+              <div style="display:flex;flex-wrap:wrap;gap:1rem">
+                <label class="mf-checkbox-label"><input type="checkbox" id="mf-includeRecon" checked> Include Reconciliation Table (Section V)</label>
+                <label class="mf-checkbox-label"><input type="checkbox" id="mf-flagPending" checked> Flag Pending Documents in Annexure (Section VIII)</label>
+                <label class="mf-checkbox-label"><input type="checkbox" id="mf-includeCaselaw" checked> Include Case Law Citations (Section VI)</label>
+                <label class="mf-checkbox-label"><input type="checkbox" id="mf-includeWP" checked> Include Without-Prejudice Submissions (Section IX)</label>
+              </div>
+            </div>
+
+            <div style="margin-top:1.5rem;display:flex;justify-content:center">
+              <button class="btn-primary" id="generateMatterBtn2" style="padding:.85rem 2.5rem;font-size:1rem;gap:.6rem">
+                <i class="ph ph-file-code"></i> Generate Strategy Draft
+              </button>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ── GST AI INTELLIGENCE ENGINE VIEW ── -->
+        <section class="view" id="view-ai">
+
+          <!-- AI Header Bar -->
+          <div class="ai-view-header">
+            <div class="ai-vh-left">
+              <div class="ai-vh-icon">⚖️</div>
+              <div>
+                <div class="ai-vh-title">GST Intelligence Engine</div>
+                <div class="ai-vh-sub">RESEARCH · DRAFTING · CASE LAW · ANALYSIS</div>
+              </div>
+            </div>
+            <div class="ai-vh-right">
+              <div class="ai-mode-tabs" id="aiModeTabs">
+                <button class="ai-mode-tab" id="aiTabChat">⟡ Chat</button>
+                <button class="ai-mode-tab" id="aiTabSearch">⊕ Law Search</button>
+              </div>
+              <button id="aiSettingsBtn" class="ai-settings-btn" title="Configure Anthropic API Key"><i class="ph ph-gear"></i> API Key</button>
+            </div>
+          </div>
+
+          <!-- No API Key Banner -->
+          <div class="ai-no-key-banner" id="aiNoBanner">
+            <i class="ph ph-key"></i>
+            <span>Anthropic API key not configured. The AI engine requires your key to generate responses.</span>
+            <button onclick="GSTAIEngine.showKeyModal()">Configure Key →</button>
+          </div>
+
+          <!-- ── CHAT PANE ── -->
+          <div class="ai-chat-pane" id="aiChatPane">
+
+            <!-- Message area -->
+            <div class="ai-messages-scroll">
+              <div class="ai-messages-inner" id="aiMessages"></div>
+              <div id="aiBottom"></div>
+            </div>
+
+            <!-- Quick prompts (shown only on welcome screen) -->
+            <div class="ai-qp-wrap" id="aiQuickPrompts">
+              <div class="ai-qp-label">QUICK ACTIONS</div>
+              <div id="aiQPInner" class="ai-qp-grid"></div>
+            </div>
+
+            <!-- Input bar -->
+            <div class="ai-input-bar">
+              <div class="ai-input-inner">
+                <textarea id="aiChatInput" class="ai-textarea" rows="1" placeholder="Ask about any GST section, draft a notice reply, research a legal issue…"></textarea>
+                <button id="aiSendBtn" class="ai-send-btn" disabled>↑</button>
+              </div>
+              <div class="ai-input-hint">Enter to send · Shift+Enter for new line · AI may make errors — always verify before filing</div>
+            </div>
+
+          </div><!-- /aiChatPane -->
+
+          <!-- ── SEARCH PANE ── -->
+          <div class="ai-srch-pane" id="aiSrchPane" style="display:none">
+            <div class="ai-srch-header">
+              <h2 class="ai-srch-title">GST Law Search</h2>
+              <p class="ai-srch-sub">Search sections, circulars, notifications, rules, and case law</p>
+            </div>
+
+            <div class="ai-srch-box">
+              <span class="ai-srch-icon">⊕</span>
+              <input id="aiSrchInput" class="ai-srch-input" placeholder="e.g. ITC reversal Section 16, GSTR-1 mismatch circular, DRC-01 limitation period…">
+              <button id="aiSrchBtn" class="ai-srch-btn">Search</button>
+            </div>
+
+            <div class="ai-srch-chips">
+              <button onclick="GSTAIEngine.doSearchChip('Section 16 ITC')">Section 16 ITC</button>
+              <button onclick="GSTAIEngine.doSearchChip('GSTR-1 vs 3B mismatch')">GSTR-1 vs 3B mismatch</button>
+              <button onclick="GSTAIEngine.doSearchChip('DRC-01 show cause')">DRC-01 show cause</button>
+              <button onclick="GSTAIEngine.doSearchChip('E-way bill penalty')">E-way bill penalty</button>
+              <button onclick="GSTAIEngine.doSearchChip('Fake invoice defense')">Fake invoice defense</button>
+              <button onclick="GSTAIEngine.doSearchChip('Section 74 fraud')">Section 74 fraud</button>
+            </div>
+
+            <div class="ai-srch-spinner" id="aiSrchSpinner" style="display:none">
+              <div class="ai-spin"></div>
+              <span>Searching GST law database…</span>
+            </div>
+
+            <div id="aiSrchResults"></div>
+          </div><!-- /aiSrchPane -->
+
+        </section>
+
+        <!-- ── CLIENT ALERTS / COMMS VIEW ── -->
+        <section class="view" id="view-comms">
+          <div class="page-header">
+            <div>
+              <h1>Client Alerts</h1>
+              <p>Generate WhatsApp &amp; Email alerts for notices, deadlines, and document requests.</p>
+            </div>
+            <div class="header-actions">
+              <button class="btn-secondary" id="clearCommsBtn"><i class="ph ph-eraser"></i> Clear</button>
+              <button class="btn-primary" id="generateCommsBtn"><i class="ph ph-paper-plane-tilt"></i> Generate Alert</button>
+            </div>
+          </div>
+
+          <div class="comms-layout">
+
+            <!-- LEFT: Intake Form -->
+            <div class="comms-form-col">
+
+              <!-- Trigger Type -->
+              <div class="comms-card">
+                <div class="comms-card-label"><i class="ph ph-lightning"></i> Alert Trigger</div>
+                <div class="trigger-grid" id="triggerGrid">
+                  <!-- Rendered by JS -->
+                </div>
+              </div>
+
+              <!-- Client & Matter -->
+              <div class="comms-card">
+                <div class="comms-card-label"><i class="ph ph-user-circle"></i> Client &amp; Matter</div>
+                <div class="mf-grid" style="grid-template-columns:1fr 1fr;gap:.85rem">
+                  <div class="mf-group span2">
+                    <label class="mf-label">Client Name <span class="mf-req">*</span></label>
+                    <input type="text" class="mf-input" id="cm-clientName" placeholder="Type to search 381 clients..." list="commsClientList">
+                    <datalist id="commsClientList"></datalist>
+                  </div>
+                  <div class="mf-group">
+                    <label class="mf-label">Matter Reference</label>
+                    <input type="text" class="mf-input" id="cm-matterId" placeholder="e.g. GST/MH/2024/001">
+                  </div>
+                  <div class="mf-group">
+                    <label class="mf-label">Notice Type</label>
+                    <select class="mf-select" id="cm-noticeType">
+                      <option value="">— Select —</option>
+                      <option>SCN u/s 73 (DRC-01)</option>
+                      <option>SCN u/s 74 (DRC-01)</option>
+                      <option>DRC-01A (Pre-SCN)</option>
+                      <option>ASMT-10 (Scrutiny)</option>
+                      <option>ADT-02 (GST Audit)</option>
+                      <option>GSTR-3A (Default)</option>
+                      <option>Summons u/s 70</option>
+                      <option>Other GST Notice</option>
+                    </select>
+                  </div>
+                  <div class="mf-group">
+                    <label class="mf-label">Due Date <span class="mf-req">*</span></label>
+                    <input type="text" class="mf-input" id="cm-dueDate" placeholder="DD.MM.YYYY or YYYY-MM-DD">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Personnel -->
+              <div class="comms-card">
+                <div class="comms-card-label"><i class="ph ph-identification-badge"></i> Personnel</div>
+                <div class="mf-grid" style="grid-template-columns:1fr 1fr;gap:.85rem">
+                  <div class="mf-group">
+                    <label class="mf-label">Assigned Executive</label>
+                    <input type="text" class="mf-input" id="cm-executive" placeholder="e.g. Priya Sharma">
+                  </div>
+                  <div class="mf-group">
+                    <label class="mf-label">Partner In Charge</label>
+                    <input type="text" class="mf-input" id="cm-partner" placeholder="e.g. CA Rajesh Gupta">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Documents Pending -->
+              <div class="comms-card">
+                <div class="comms-card-label" style="justify-content:space-between">
+                  <span><i class="ph ph-folder-open"></i> Pending Documents</span>
+                  <button class="comms-add-doc-btn" id="addCommsDoc"><i class="ph ph-plus"></i> Add</button>
+                </div>
+                <p style="font-size:.78rem;color:var(--text-soft);margin-bottom:.75rem">Leave empty if no documents are pending. These appear in the email list and WhatsApp line.</p>
+                <div id="commsDocList" style="display:flex;flex-direction:column;gap:.45rem">
+                  <!-- Dynamic doc inputs rendered by JS -->
+                </div>
+              </div>
+
+              <!-- DRAFT_APPROVED extras -->
+              <div class="comms-card" id="draftApprovedExtras" style="display:none">
+                <div class="comms-card-label"><i class="ph ph-currency-inr"></i> Draft Approved — Optional Context</div>
+                <div class="mf-group">
+                  <label class="mf-label">Demand / Financial Context <span style="color:var(--text-soft)">(only include if required)</span></label>
+                  <input type="text" class="mf-input" id="cm-demandContext" placeholder="e.g. Tax demand of ₹4,85,000 — reply filed, no admission">
+                </div>
+              </div>
+
+            </div><!-- /comms-form-col -->
+
+            <!-- RIGHT: Output Panels -->
+            <div class="comms-output-col" id="commsOutputCol">
+
+              <!-- Urgency Banner (hidden until generated) -->
+              <div class="urgency-banner" id="urgencyBanner" style="display:none"></div>
+
+              <!-- WhatsApp Output -->
+              <div class="comms-output-card" id="waCard">
+                <div class="coc-header">
+                  <div class="coc-title"><i class="ph ph-whatsapp-logo" style="color:#25d366"></i> WhatsApp Message</div>
+                  <div class="coc-meta" id="waCharCount">Max 5 lines · plain text</div>
+                  <div class="coc-actions">
+                    <button class="coc-btn" id="copyWaBtn" title="Copy to clipboard"><i class="ph ph-copy"></i> Copy</button>
+                    <button class="coc-btn coc-wa" id="openWaBtn" title="Open WhatsApp"><i class="ph ph-whatsapp-logo"></i> Send</button>
+                  </div>
+                </div>
+                <textarea class="comms-output-text" id="waOutput" readonly placeholder="WhatsApp message will appear here after generating..."></textarea>
+              </div>
+
+              <!-- Email Output -->
+              <div class="comms-output-card" id="emailCard">
+                <div class="coc-header">
+                  <div class="coc-title"><i class="ph ph-envelope" style="color:var(--blue-500)"></i> Email Message</div>
+                  <div class="coc-meta" id="emailWordCount">Formal · with subject line</div>
+                  <div class="coc-actions">
+                    <button class="coc-btn" id="copyEmailBtn" title="Copy to clipboard"><i class="ph ph-copy"></i> Copy</button>
+                    <button class="coc-btn coc-email" id="openEmailBtn" title="Open email client"><i class="ph ph-envelope"></i> Compose</button>
+                  </div>
+                </div>
+                <textarea class="comms-output-text comms-output-email" id="emailOutput" readonly placeholder="Formal email will appear here after generating..."></textarea>
+              </div>
+
+              <!-- Placeholder before generation -->
+              <div class="comms-placeholder" id="commsPlaceholder">
+                <i class="ph ph-paper-plane-tilt"></i>
+                <p>Fill the form and click <strong>Generate Alert</strong></p>
+                <p style="font-size:.78rem">Both WhatsApp and Email versions will appear here</p>
+              </div>
+
+            </div><!-- /comms-output-col -->
+          </div><!-- /comms-layout -->
+        </section>
+
+      </div><!-- /content-area -->
+    </div><!-- /main-wrapper -->
+  </div><!-- /layout -->
+
+  <!-- ══ DRAFT MODAL ══ -->
+  <div class="modal-overlay" id="draftModalOverlay">
+    <div class="modal-box" id="draftModal">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" id="modalTitle">Draft Reply</div>
+          <div class="modal-sub" id="modalSub"></div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-secondary" id="copyDraftBtn"><i class="ph ph-copy"></i> Copy</button>
+          <button class="btn-primary" id="printDraftBtn"><i class="ph ph-printer"></i> Print</button>
+          <button class="icon-btn" id="closeDraftModal"><i class="ph ph-x"></i></button>
+        </div>
+      </div>
+
+      <!-- Warning Bar -->
+      <div class="draft-warning">
+        <i class="ph ph-warning"></i>
+        Review all <strong>[REQUIRES LEGAL VERIFICATION]</strong> and <strong>[DOCUMENT PENDING]</strong> markers before filing. This is a draft template only.
+      </div>
+
+      <!-- Strategy Badge -->
+      <div class="draft-strategy" id="draftStrategy"></div>
+
+      <!-- Document status panel -->
+      <div class="doc-panel" id="docPanel"></div>
+
+      <!-- Draft Content -->
+      <div class="draft-content" id="draftContent"></div>
+    </div>
+  </div>
+
+  <!-- ══ PASSWORD REVEALED TOAST ══ -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ══ AI API KEY MODAL ══ -->
+  <div class="modal-overlay" id="aiKeyModal" style="display:none;z-index:1100">
+    <div style="background:var(--bg-surface);border-radius:1.2rem;padding:2rem;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.4);border:1px solid var(--border)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
+        <div style="display:flex;align-items:center;gap:.75rem">
+          <div style="width:40px;height:40px;border-radius:.75rem;background:linear-gradient(135deg,#6366F1,#8B5CF6);display:flex;align-items:center;justify-content:center;font-size:1.3rem">⚖️</div>
+          <div>
+            <div style="font-weight:700;font-size:1rem;color:var(--text)">GST Intelligence Engine</div>
+            <div style="font-size:.75rem;color:var(--text-muted);letter-spacing:.05em">ANTHROPIC API CONFIGURATION</div>
+          </div>
+        </div>
+        <button id="aiKeyModalClose" class="icon-btn"><i class="ph ph-x"></i></button>
+      </div>
+
+      <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:.75rem;padding:1rem;margin-bottom:1.25rem;font-size:.84rem;line-height:1.65;color:var(--text-soft)">
+        <i class="ph ph-info" style="color:#6366F1;margin-right:.4rem"></i>
+        The AI Engine uses <strong style="color:var(--text)">Anthropic Claude</strong> to research GST law, draft replies, and search case law. Your API key is stored locally on this device only and never sent to any third party.
+      </div>
+
+      <div class="mf-group" style="margin-bottom:1rem">
+        <label class="mf-label">Anthropic API Key <span class="mf-req">*</span></label>
+        <input type="password" class="mf-input" id="aiKeyInput" placeholder="sk-ant-api03-...">
+        <div style="font-size:.75rem;color:var(--text-soft);margin-top:.4rem">
+          Get your key at <a href="https://console.anthropic.com" target="_blank" style="color:#6366F1">console.anthropic.com</a> → API Keys
+        </div>
+      </div>
+
+      <div style="display:flex;gap:.75rem">
+        <button id="aiKeySaveBtn" class="btn-primary" style="flex:1"><i class="ph ph-check"></i> Save & Activate</button>
+        <button id="aiKeySkipBtn" class="btn-secondary">Skip for now</button>
+      </div>
+
+      <div style="margin-top:1rem;padding:.75rem;background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.15);border-radius:.5rem;font-size:.75rem;color:var(--text-soft)">
+        <strong style="color:#6366F1">Note:</strong> This makes direct API calls from your browser. Your key must have access to <code style="color:var(--text)">claude-opus-4-5</code> model. Responses are for drafting assistance only — always verify before filing.
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

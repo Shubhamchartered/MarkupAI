@@ -8,11 +8,16 @@ export default function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const handleLogin = (e) => {
     e.preventDefault();
-    if (username && password) {
+    setError("");
+    if (username === "admin" && password === "password123") {
+      localStorage.setItem("markup_auth", "true");
       router.push("/select-module");
+    } else {
+      setError("Invalid credentials. Please use 'admin' and 'password123' for this demo.");
     }
   };
 
@@ -26,6 +31,12 @@ export default function LoginPage() {
           <h1>MARKUP <span style={{fontWeight: 300}}>Pro</span></h1>
           <p>Login to your subscription account</p>
         </div>
+
+        {error && (
+          <div style={{color: 'var(--danger-color)', background: 'rgba(239, 68, 68, 0.1)', padding: '0.8rem', borderRadius: '8px', marginBottom: '1.5rem', textAlign: 'center', fontSize: '0.9rem', border: '1px solid var(--danger-color)'}}>
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleLogin} className="login-form">
           <div className="mf-group">

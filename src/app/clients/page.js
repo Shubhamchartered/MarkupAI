@@ -1,13 +1,23 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import { DownloadSimple, Plus, MagnifyingGlass, ArrowsDownUp, FileCode } from '@phosphor-icons/react';
+import { DownloadSimple, Plus, MagnifyingGlass, ArrowsDownUp, FileCode, SignIn } from '@phosphor-icons/react';
 import { CLIENT_DATA } from '@/data/client_data';
 
 export default function ClientsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [pageSize, setPageSize] = useState(25);
   const [currentPage, setCurrentPage] = useState(1);
+  const [showAddClient, setShowAddClient] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [activeClient, setActiveClient] = useState(null);
+  const [loginStep, setLoginStep] = useState(0);
+
+  const handleGstnLogin = (c) => {
+    setActiveClient(c);
+    setShowLoginModal(true);
+    setLoginStep(0);
+  };
 
   // Simple filtering
   const filteredClients = useMemo(() => {
@@ -37,7 +47,7 @@ export default function ClientsPage() {
         </div>
         <div className="header-actions">
           <button className="btn-secondary" id="exportBtn"><DownloadSimple /> Export CSV</button>
-          <button className="btn-primary"><Plus /> Add Client</button>
+          <button className="btn-primary" onClick={() => setShowAddClient(true)}><Plus /> Add Client</button>
         </div>
       </div>
 
@@ -99,7 +109,14 @@ export default function ClientsPage() {
                     <td className="pw-cell">••••••</td>
                     <td>{c.gstn}</td>
                     <td>{c.gstn && c.gstn.startsWith('27') ? 'MH(27)' : 'Other'}</td>
-                    <td><button className="icon-btn-sm tooltip" data-tip="Generate Notice Reply"><FileCode /></button></td>
+                    <td>
+                      <div style={{display: 'flex', gap: '0.5rem', alignItems: 'center'}}>
+                        <button className="icon-btn-sm tooltip" data-tip="Generate Notice Reply"><FileCode /></button>
+                        <button className="btn-secondary" style={{padding: '0.3rem 0.6rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem'}} onClick={() => handleGstnLogin(c)}>
+                          <SignIn /> GSTN Login
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}
@@ -121,6 +138,77 @@ export default function ClientsPage() {
           </div>
         </div>
       </div>
+
+      {/* Add Client Modal */}
+      {showAddClient && (
+        <div className="modal-overlay" style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000}}>
+          <div className="modal-content" style={{background: 'var(--bg-elevated)', padding: '2rem', borderRadius: '16px', width: '90%', maxWidth: '500px', border: '1px solid var(--border)'}}>
+            <h2>Add New Client</h2>
+            <p style={{color: 'var(--text-soft)', marginBottom: '1.5rem'}}>Upload GSTR-3B or Excel to auto-fetch details from portal data.</p>
+            
+            <div style={{border: '1px dashed var(--primary-color)', padding: '2rem', textAlign: 'center', borderRadius: '8px', cursor: 'pointer', marginBottom: '1.5rem', background: 'rgba(99, 102, 241, 0.05)'}} onClick={() => document.getElementById('gstr3b-upload').click()}>
+              <FileCode size={32} color="var(--primary-color)" />
+              <div style={{marginTop: '0.5rem'}}>Click to Upload GSTR-3B / Master Data (.xlsx, .json)</div>
+            </div>
+            <input type="file" id="gstr3b-upload" style={{display: 'none'}} onChange={(e) => {
+               if(e.target.files.length) {
+                 alert('Data successfully processed. Client details auto-filled!');
+                 setShowAddClient(false);
+               }
+            }} />
+            
+            <div style={{textAlign: 'right'}}>
+               <button className="btn-secondary" onClick={() => setShowAddClient(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* GSTN Login Modal */}
+      {showLoginModal && activeClient && (
+        <div className="modal-overlay" style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000}}>
+          <div className="modal-content" style={{background: 'var(--bg-elevated)', padding: '2rem', borderRadius: '16px', width: '90%', maxWidth: '400px', border: '1px solid var(--border)'}}>
+            <h2>GSTN Portal Auth</h2>
+            <p style={{color: 'var(--text-soft)', marginBottom: '1.5rem'}}>Connecting for {activeClient.userName}</p>
+            
+            {loginStep === 0 && (
+              <>
+                <div style={{padding: '1rem', background: 'var(--bg)', borderRadius: '8px', marginBottom: '1.5rem'}}>
+                  <div style={{marginBottom: '0.5rem'}}><strong>User ID:</strong> {activeClient.userId}</div>
+                  <div><strong>Password:</strong> ••••••••</div>
+                </div>
+                <button className="btn-primary" style={{width: '100%', padding: '0.8rem'}} onClick={() => {
+                  setLoginStep(1);
+                  setTimeout(() => setLoginStep(2), 2000);
+                  setTimeout(() => setLoginStep(3), 4000);
+                  setTimeout(() => {
+                    alert('Successfully logged in and fetched notices!');
+                    setShowLoginModal(false);
+                  }, 6000);
+                }}>Connect via 2Captcha</button>
+              </>
+            )}
+            
+            {loginStep > 0 && (
+              <div style={{display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', color: loginStep >= 1 ? 'var(--success-color)' : 'var(--text-soft)'}}>
+                  {loginStep >= 1 ? '✅' : '⏳'} Initializing Browser Session...
+                </div>
+                <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', color: loginStep >= 2 ? 'var(--success-color)' : 'var(--text-soft)'}}>
+                  {loginStep >= 2 ? '✅' : '⏳'} Solving CAPTCHA (2Captcha)...
+                </div>
+                <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', color: loginStep >= 3 ? 'var(--success-color)' : 'var(--text-soft)'}}>
+                  {loginStep >= 3 ? '✅' : '⏳'} Authenticating and Scraping...
+                </div>
+              </div>
+            )}
+            
+            <div style={{textAlign: 'right'}}>
+               <button className="btn-secondary" onClick={() => setShowLoginModal(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

@@ -53,14 +53,6 @@ export default function Dashboard() {
             <span className="kpi-trend down"><ArrowDownRight /> Action needed</span>
           </div>
         </div>
-        <div className="kpi-card kpi-amber">
-          <div className="kpi-icon"><ClockCountdown /></div>
-          <div className="kpi-body">
-            <p>Pending Returns</p>
-            <h2>142</h2>
-            <span className="kpi-trend neutral"><Minus /> Due in 3 days</span>
-          </div>
-        </div>
       </div>
 
       {/* Quick Stats Row */}

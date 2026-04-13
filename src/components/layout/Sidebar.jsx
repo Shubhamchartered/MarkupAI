@@ -19,7 +19,7 @@ export default function Sidebar() {
         <div className="brand-icon"><Receipt weight="bold" /></div>
         <div className="brand-text">
           <span className="brand-name">MARKUP</span>
-          <span className="brand-sub">GST Pro</span>
+          <span className="brand-sub">Pro</span>
         </div>
       </div>
 

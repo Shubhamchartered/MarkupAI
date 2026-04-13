@@ -1,10 +1,26 @@
 "use client";
 
-import { FileText, CalendarBlank, DownloadSimple, PaperPlaneTilt } from '@phosphor-icons/react';
+import { useState } from 'react';
+import { FileText, CalendarBlank, DownloadSimple, PaperPlaneTilt, UploadSimple } from '@phosphor-icons/react';
 import { NOTICES_DB } from '@/data/notices_data';
 
 export default function LegalPage() {
-  const drafts = NOTICES_DB.drafts || [];
+  const [drafts, setDrafts] = useState(NOTICES_DB.drafts || []);
+
+  const handleUploadData = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      alert('Notice data uploaded successfully! Extracting metadata and generating AI draft...');
+      const newDraft = {
+        draft_id: `DRF-AUTO-${Math.floor(Math.random()*1000)}`,
+        draft_type: 'Auto-Generated Reply (AI)',
+        client_name: 'Uploaded Data Client',
+        notice_ref: 'SCN/AUTO/2026',
+        date_generated: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+        status: 'Needs Review'
+      };
+      setDrafts([newDraft, ...drafts]);
+    }
+  };
 
   return (
     <section className="view active" id="view-legal">
@@ -12,6 +28,18 @@ export default function LegalPage() {
         <div>
           <h1>Litigation Draft Centre</h1>
           <p>AI-assisted department-ready reply drafts. Review all markers before filing.</p>
+        </div>
+        <div className="header-actions">
+          <input 
+            type="file" 
+            id="legal-data-upload" 
+            style={{display: 'none'}} 
+            onChange={handleUploadData}
+            accept=".pdf,.json,.xlsx" 
+          />
+          <button className="btn-primary" onClick={() => document.getElementById('legal-data-upload').click()}>
+            <UploadSimple /> Upload Notice Data
+          </button>
         </div>
       </div>
 

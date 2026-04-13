@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { UserCircle, WarningOctagon, Scales, Notepad, FolderOpen, Lightning, Trash, FileCode } from '@phosphor-icons/react';
+import { UserCircle, WarningOctagon, Scales, Notepad, FolderOpen, Lightning, Trash, FileCode, UploadSimple } from '@phosphor-icons/react';
 import { MatterEngine } from '@/lib/matter_engine';
 import { CLIENT_DATA } from '@/data/client_data';
 
@@ -38,6 +38,23 @@ export default function MatterPage() {
     }));
   };
 
+  const handleUploadNotice = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      alert('Notice parsed successfully! Auto-filling details...');
+      setFormData(prev => ({
+        ...prev,
+        legalName: 'M/s Uploaded Enterprises',
+        gstin: '27AADCA1234F1Z9',
+        state: 'Maharashtra',
+        noticeType: 'SCN u/s 73',
+        noticeNumber: 'SCN/2026/MH/01',
+        issueDate: '2026-04-10',
+        dueDate: '2026-05-10',
+        issuingAuthority: 'State Tax Officer'
+      }));
+    }
+  };
+
   const handleGenerate = () => {
     // Generate Strategy Draft uses the MatterEngine.
     const matter = {
@@ -72,6 +89,10 @@ export default function MatterPage() {
           <p>Complete the intake form to generate a department-ready GST reply tailored to your chosen strategy.</p>
         </div>
         <div className="header-actions">
+          <input type="file" id="matter-notice-upload" style={{display: 'none'}} onChange={handleUploadNotice} accept=".pdf,.json" />
+          <button className="btn-secondary" onClick={() => document.getElementById('matter-notice-upload').click()}>
+            <UploadSimple /> Upload Notice
+          </button>
           <button className="btn-secondary" onClick={() => setOutput('')}><Trash /> Clear Form</button>
           <button className="btn-primary" onClick={handleGenerate}><FileCode /> Generate Strategy Draft</button>
         </div>

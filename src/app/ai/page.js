@@ -1,19 +1,39 @@
 "use client";
 
-import { useState } from 'react';
-import { Gear, Brain, MagnifyingGlass, PaperPlaneRight } from '@phosphor-icons/react';
+import { useState, useRef } from 'react';
+import { Gear, Brain, MagnifyingGlass, PaperPlaneRight, Paperclip, X } from '@phosphor-icons/react';
 
 export default function AIPage() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [activeTab, setActiveTab] = useState('chat');
+  const [files, setFiles] = useState([]);
+  const fileInputRef = useRef(null);
+
+  const handleFileChange = (e) => {
+    if (e.target.files) {
+      setFiles(prev => [...prev, ...Array.from(e.target.files)]);
+    }
+  };
+
+  const removeFile = (index) => {
+    setFiles(files.filter((_, i) => i !== index));
+  };
 
   const sendMessage = () => {
-    if (!input.trim()) return;
-    setMessages([...messages, { role: 'user', text: input }]);
+    if (!input.trim() && files.length === 0) return;
+    
+    let userMsg = input;
+    if (files.length > 0) {
+      const fileNames = files.map(f => f.name).join(', ');
+      userMsg = input ? `${input}\n\n[Attached: ${fileNames}]` : `[Attached: ${fileNames}]`;
+    }
+
+    setMessages([...messages, { role: 'user', text: userMsg, isFile: files.length > 0 }]);
     setInput('');
+    setFiles([]);
     setTimeout(() => {
-      setMessages(prev => [...prev, { role: 'ai', text: 'Anthropic API key is required to generate responses. Please configure your key in settings.' }]);
+      setMessages(prev => [...prev, { role: 'ai', text: 'AI processing and parsing documents... Anthropic key required for complete response.' }]);
     }, 500);
   };
 
@@ -81,11 +101,35 @@ export default function AIPage() {
             )}
           </div>
           <div className="ai-input-bar" style={{padding: '1.5rem', background: 'var(--bg)', borderTop: '1px solid var(--border)'}}>
+            {files.length > 0 && (
+              <div style={{display: 'flex', gap: '0.5rem', marginBottom: '0.8rem', flexWrap: 'wrap'}}>
+                {files.map((f, i) => (
+                  <div key={i} style={{background: 'var(--bg-elevated)', border: '1px solid var(--border)', padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem'}}>
+                    <span style={{maxWidth: '150px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{f.name}</span>
+                    <button onClick={() => removeFile(i)} style={{background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-soft)', padding: 0, display: 'flex'}}><X size={12} weight="bold" /></button>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="ai-input-inner" style={{display: 'flex', gap: '0.5rem', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '24px', padding: '0.5rem 1rem', alignItems: 'center'}}>
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                style={{background: 'none', border: 'none', color: 'var(--text-soft)', display: 'flex', alignItems: 'center', cursor: 'pointer'}}
+                title="Upload Files"
+              >
+                <Paperclip size={20} />
+              </button>
+              <input 
+                type="file" 
+                multiple
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                style={{display: 'none'}}
+              />
               <input 
                 type="text" 
                 style={{flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--text)', fontSize: '1rem'}}
-                placeholder="Ask about any GST section..."
+                placeholder="Ask about any GST section or upload docs..."
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && sendMessage()}

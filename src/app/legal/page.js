@@ -1,391 +1,364 @@
 "use client";
 
-import { useState } from 'react';
-import { FileText, CalendarBlank, DownloadSimple, PaperPlaneTilt, UploadSimple, X, CaretDown, FilePlus, Scales } from '@phosphor-icons/react';
-import { NOTICES_DB } from '@/data/notices_data';
+import { useState, useRef } from 'react';
+import { Scales, UploadSimple, FilePlus, CalendarBlank, DownloadSimple, PaperPlaneTilt, Copy, X, CaretDown, Warning, CheckCircle, ArrowRight, Printer } from '@phosphor-icons/react';
+import { PROMPT_LIBRARY } from '@/data/prompt_library';
 
-// ── Full GST Notice Categories (same as notices page) ──────────────────
-const GST_NOTICE_TYPES = [
-  { group: '1. Registration Notices', color: '#8B5CF6', items: [
-    { value: 'REG-03 (Sec 25/Rule 9)', label: 'REG-03 — Registration Query (Sec 25 / Rule 9)', short: 'RegQuery' },
-    { value: 'REG-17 (Rule 21/Sec 29)', label: 'REG-17 — Cancellation Proceedings (Rule 21 / Sec 29)', short: 'CancProceed' },
-    { value: 'REG-19 (Rule 22)', label: 'REG-19 — Cancellation Order (Rule 22)', short: 'CancOrder' },
-    { value: 'REG-21/REG-23 (Rule 23)', label: 'REG-21/23 — Revocation of Cancellation (Rule 23)', short: 'Revocation' },
-    { value: 'Rule 10A', label: 'Bank Account Validation Notice (Rule 10A)', short: 'BankValidation' },
-    { value: 'Rule 21A', label: 'GSTIN Suspension Notice (Rule 21A)', short: 'GSTINSuspend' },
-  ]},
-  { group: '2. Return Non-Filing & Compliance', color: '#F59E0B', items: [
-    { value: 'GSTR-3A (Sec 46)', label: 'GSTR-3A — Non-Filing Notice (Sec 46)', short: 'NonFiling' },
-    { value: 'Late Fee (Sec 47)', label: 'Late Fee Notice (Sec 47)', short: 'LateFee' },
-  ]},
-  { group: '3. Mismatch & Scrutiny', color: '#3B82F6', items: [
-    { value: 'ASMT-10 (Sec 61/Rule 99)', label: 'ASMT-10 — Scrutiny Notice (Sec 61 / Rule 99)', short: 'Scrutiny' },
-    { value: 'ASMT-11 Reply', label: 'ASMT-11 — Reply to Scrutiny', short: 'ScrutinyReply' },
-  ]},
-  { group: '4. Assessment Notices', color: '#06B6D4', items: [
-    { value: 'ASMT-13 (Sec 62)', label: 'ASMT-13 — Best Judgment Assessment (Sec 62)', short: 'BestJudgment' },
-    { value: 'ASMT-14 (Sec 63)', label: 'ASMT-14 — Unregistered Person (Sec 63)', short: 'UnregPerson' },
-    { value: 'Sec 64', label: 'Summary Assessment (Sec 64)', short: 'SummaryAssmt' },
-  ]},
-  { group: '5. SCN / Demand (CRITICAL)', color: '#EF4444', items: [
-    { value: 'DRC-01 (Sec 73)', label: 'DRC-01 — SCN Non-Fraud (Sec 73)', short: 'SCN_73' },
-    { value: 'DRC-01 (Sec 74)', label: 'DRC-01 — SCN Fraud / Suppression (Sec 74)', short: 'SCN_74' },
-    { value: 'DRC-06 Reply', label: 'DRC-06 — Reply to SCN (Sec 75)', short: 'DRC06Reply' },
-    { value: 'DRC-07 (Sec 76)', label: 'DRC-07 — Demand Order (Sec 76)', short: 'DRC07' },
-  ]},
-  { group: '6. ITC Related', color: '#10B981', items: [
-    { value: 'ITC Blocked (Sec 16)', label: 'ITC Blocked (Sec 16)', short: 'ITCBlocked' },
-    { value: 'Excess ITC (Sec 17)', label: 'Excess ITC Claimed (Sec 17)', short: 'ExcessITC' },
-    { value: 'ITC Restriction (Rule 36(4))', label: 'ITC Restriction (Rule 36(4))', short: 'ITCRestrict' },
-  ]},
-  { group: '7. Refund Notices', color: '#F97316', items: [
-    { value: 'RFD-03 (Rule 90)', label: 'RFD-03 — Refund Deficiency (Rule 90)', short: 'RefundDefic' },
-    { value: 'RFD-08 (Rule 92)', label: 'RFD-08 — Refund Rejection SCN (Rule 92)', short: 'RefundRejSCN' },
-  ]},
-  { group: '8. E-Way Bill / Movement', color: '#6366F1', items: [
-    { value: 'MOV-07 (Sec 129)', label: 'MOV-07 — Detention of Goods (Sec 129)', short: 'Detention' },
-    { value: 'MOV-09 (Sec 130)', label: 'MOV-09 — Confiscation Order (Sec 130)', short: 'Confiscation' },
-  ]},
-  { group: '9. Inspection / Enforcement', color: '#DC2626', items: [
-    { value: 'Summons (Sec 70)', label: 'Summons (Sec 70)', short: 'Summons' },
-    { value: 'Inspection (Sec 67)', label: 'Inspection / Search (Sec 67)', short: 'Inspection' },
-    { value: 'Access Premises (Sec 71)', label: 'Access to Business Premises (Sec 71)', short: 'AccessPremise' },
-  ]},
-  { group: '10. Audit & Investigation', color: '#7C3AED', items: [
-    { value: 'ADT-01 (Sec 65)', label: 'ADT-01 — Departmental Audit (Sec 65)', short: 'DeptAudit' },
-    { value: 'Special Audit (Sec 66)', label: 'Special Audit (Sec 66)', short: 'SpecialAudit' },
-  ]},
-  { group: '11. Appeals & Litigation', color: '#0EA5E9', items: [
-    { value: 'Appeal (Sec 107)', label: 'First Appeal (Sec 107)', short: 'FirstAppeal' },
-    { value: 'Revision (Sec 108)', label: 'Revision Order (Sec 108)', short: 'Revision' },
-    { value: 'Tribunal (Sec 112)', label: 'Appellate Tribunal (Sec 112)', short: 'Tribunal' },
-  ]},
-  { group: '12. Recovery Proceedings', color: '#B45309', items: [
-    { value: 'DRC-13 (Sec 79)', label: 'DRC-13 — Bank Attachment (Sec 79)', short: 'BankAttach' },
-    { value: 'DRC-16 (Sec 78)', label: 'DRC-16 — Property Attachment (Sec 78)', short: 'PropAttach' },
-  ]},
-];
+const RISK_COLORS = { critical: '#EF4444', high: '#F59E0B', medium: '#10B981', low: '#6366F1' };
+const RISK_LABELS = { critical: '🚨 Critical', high: '⚠️ High', medium: '🔵 Medium', low: '✅ Low' };
 
-// ── Template generator for 4 draft forms per notice type ──────────────────
-function getDraftTemplates(noticeType) {
-  const type = noticeType || 'Notice';
-  return [
-    {
-      form: 'Form A — Formal Reply',
-      description: 'Official departmental reply with supporting arguments and factual position.',
-      content: `TO,
-The Adjudicating Authority / Assessing Officer
-GST Department
-
-Sub: Reply to ${type} — Without Prejudice
-
-Respected Sir / Ma'am,
-
-We, the undersigned, submit this reply to the ${type} issued to our client. We respectfully state that the notice has been carefully examined and we submit the following factual and legal position:
-
-1. FACTUAL BACKGROUND:
-   The taxpayer has been regularly filing returns and discharging GST liability in accordance with applicable provisions.
-
-2. LEGAL GROUNDS:
-   The demand/query raised in the notice is disputed on the following grounds:
-   (a) The transactions in question are fully supported by valid documents.
-   (b) All applicable provisions have been duly complied with.
-
-3. PRAYER:
-   In view of the above facts and legal position, it is most respectfully prayed that the notice may be dropped and no demand be confirmed.
-
-Respectfully submitted,
-[Taxpayer Name]
-[GSTIN]
-[Date]`
-    },
-    {
-      form: 'Form B — ITC Reconciliation Statement',
-      description: 'Reconciliation of ITC claimed vs books of accounts with supporting schedules.',
-      content: `ITC RECONCILIATION STATEMENT
-For the Period: [Period From] to [Period To]
-
-Taxpayer: [Client Name]
-GSTIN: [GSTIN]
-Notice Reference: ${type}
-
-┌─────────────────────────────────────────────────────────────────────┐
-│ Particulars              │ As per 2B (₹) │ As per 3B (₹) │ Diff (₹) │
-├─────────────────────────────────────────────────────────────────────┤
-│ IGST Input               │               │               │          │
-│ CGST Input               │               │               │          │
-│ SGST Input               │               │               │          │
-│ Total ITC                │               │               │          │
-└─────────────────────────────────────────────────────────────────────┘
-
-Reasons for Difference:
-1. Vendor invoices not reflecting in 2B due to delayed filing by vendor.
-2. Pending credits under Section 16(4) being rectified.
-
-Note: All supporting invoices, GSTR-2A/2B data available for verification.`
-    },
-    {
-      form: 'Form C — Ground of Appeal / Objection',
-      description: 'Grounds raised for first appeal or objection to the order.',
-      content: `GROUNDS OF APPEAL / OBJECTION
-In reply to: ${type}
-
-GROUND 1 — ORDER BARRED BY LIMITATION:
-The notice / order has been issued beyond the prescribed time limit under CGST Act, rendering it void ab initio.
-
-GROUND 2 — PRINCIPLES OF NATURAL JUSTICE VIOLATED:
-No adequate opportunity of hearing was provided to the appellant before passing the order. [Cite: SC ruling on natural justice]
-
-GROUND 3 — DEMAND FACTUALLY INCORRECT:
-The impugned demand is based on presumptions without considering documentary evidence. All invoices and payment records are available.
-
-GROUND 4 — WRONG INTERPRETATION OF LAW:
-The authority has erred in applying [relevant section], which is not applicable to the facts of the present case.
-
-GROUND 5 — IDENTICAL JUDGMENTS IN FAVOR:
-Several High Courts and GST Appellate Tribunals have ruled in favor of the taxpayer on identical facts. [Attach case law summary]
-
-Prayer: Drop the demand and provide relief to the taxpayer.`
-    },
-    {
-      form: 'Form D — Supporting Affidavit',
-      description: 'Sworn affidavit supporting the taxpayer\'s reply with factual declarations.',
-      content: `AFFIDAVIT
-
-I, [Authorized Signatory Name], son/daughter of [Father's Name], aged [age], residing at [address], being the authorized signatory of [Firm Name] (GSTIN: [GSTIN]), do hereby solemnly affirm and declare as under:
-
-1. That I am fully conversant with the facts and circumstances of the case.
-
-2. That the reply submitted to the ${type} is true and correct to the best of my knowledge and belief.
-
-3. That all documents and records annexed are true copies of the originals.
-
-4. That no amount of GST has been evaded or suppressed willfully.
-
-5. That we are ready to cooperate with the department for any further verification.
-
-DEPONENT
-
-Verified at [Place] on this [Date] day of [Month] [Year] that the contents of this affidavit are true and correct to the best of my knowledge and no part is false.
-
-[Notary Seal & Signature]
-[Authorized Signatory Signature & Stamp]`
-    }
-  ];
-}
-
-// ── Draft Card Component ──────────────────────────────────────────────
-function DraftCard({ draft, onDelete }) {
-  const [expanded, setExpanded] = useState(false);
-
+// ── Category Selector Card ─────────────────────────────────────────────────
+function CategoryCard({ cat, selected, onClick }) {
   return (
-    <div style={{
-      background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '14px',
-      overflow: 'hidden', transition: 'box-shadow 0.2s', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
-    }}
-      onMouseOver={e => e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.12)'}
-      onMouseOut={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'}
-    >
-      {/* Header bar by category color */}
-      <div style={{ height: '3px', background: draft.color || 'linear-gradient(90deg,#6366F1,#3B82F6)' }} />
-      <div style={{ padding: '1.25rem 1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '99px', background: draft.color ? `${draft.color}20` : 'rgba(99,102,241,0.12)', color: draft.color || '#6366F1', border: `1px solid ${draft.color || '#6366F1'}33` }}>
-                {draft.draft_type || 'Draft'}
-              </span>
-              <span className={`status-badge ${draft.status === 'Needs Review' ? 'warning' : 'success'}`}>{draft.status}</span>
-            </div>
-            <div style={{ fontWeight: 700, fontSize: '1rem' }}>{draft.client_name}</div>
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.3rem', color: 'var(--text-soft)', fontSize: '0.8rem' }}>
-              <span>Ref: {draft.notice_ref}</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><CalendarBlank size={12} /> {draft.date_generated}</span>
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexShrink: 0, marginLeft: '1rem' }}>
-            <button className="icon-btn-sm tooltip" data-tip="Download Word"><DownloadSimple /></button>
-            <button className="icon-btn-sm tooltip" data-tip="Email to Client"><PaperPlaneTilt /></button>
-            {onDelete && <button className="icon-btn-sm tooltip" data-tip="Delete" onClick={onDelete} style={{ color: 'var(--danger-color, #ef4444)' }}><X size={14} /></button>}
-          </div>
+    <div onClick={onClick} style={{
+      border: `2px solid ${selected ? cat.color : 'var(--border)'}`,
+      borderRadius: '12px', padding: '1rem', cursor: 'pointer',
+      background: selected ? `${cat.color}12` : 'var(--bg-elevated)',
+      transition: 'all 0.2s', position: 'relative', overflow: 'hidden'
+    }}>
+      <div style={{ height: '3px', background: cat.color, borderRadius: '99px', marginBottom: '0.75rem' }} />
+      <div style={{ fontWeight: 700, fontSize: '0.88rem', marginBottom: '0.25rem', lineHeight: '1.3' }}>{cat.title}</div>
+      <div style={{ fontSize: '0.72rem', color: 'var(--text-soft)', marginBottom: '0.5rem' }}>{cat.sections}</div>
+      <span style={{
+        fontSize: '0.68rem', fontWeight: 700, padding: '0.1rem 0.5rem', borderRadius: '99px',
+        background: `${RISK_COLORS[cat.risk]}20`, color: RISK_COLORS[cat.risk], border: `1px solid ${RISK_COLORS[cat.risk]}40`
+      }}>{RISK_LABELS[cat.risk]}</span>
+      {selected && (
+        <div style={{ position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: '50%', background: cat.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <CheckCircle size={12} color="#fff" weight="bold" />
         </div>
-
-        {/* 4 forms section */}
-        {draft.forms && (
-          <div>
-            <button onClick={() => setExpanded(!expanded)} style={{
-              display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg)', border: '1px solid var(--border)',
-              borderRadius: '8px', padding: '0.5rem 0.9rem', cursor: 'pointer', color: 'var(--text-soft)', fontSize: '0.82rem',
-              width: '100%', justifyContent: 'center', transition: 'all 0.2s', marginTop: '0.5rem'
-            }}>
-              <FilePlus size={14} />
-              {expanded ? 'Hide' : 'View'} 4 Draft Forms
-              <CaretDown size={12} style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }} />
-            </button>
-
-            {expanded && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.75rem', marginTop: '0.75rem' }}>
-                {draft.forms.map((form, fi) => (
-                  <div key={fi} style={{ border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
-                    <div style={{ padding: '0.7rem 1rem', background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>{form.form}</div>
-                        <div style={{ color: 'var(--text-soft)', fontSize: '0.75rem', marginTop: '0.1rem' }}>{form.description}</div>
-                      </div>
-                      <button className="btn-secondary" style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', flexShrink: 0, marginLeft: '0.5rem' }}
-                        onClick={() => { navigator.clipboard.writeText(form.content); alert(`${form.form} copied!`); }}>
-                        Copy
-                      </button>
-                    </div>
-                    <div style={{ padding: '0.75rem 1rem', maxHeight: '200px', overflowY: 'auto', fontFamily: 'monospace', fontSize: '0.75rem', lineHeight: '1.6', whiteSpace: 'pre-wrap', color: 'var(--text)', background: 'var(--bg)' }}>
-                      {form.content}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {!draft.forms && (
-          <button className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.82rem', marginTop: '0.5rem' }}>
-            <FileText size={14} /> Edit Draft
-          </button>
-        )}
-      </div>
+      )}
     </div>
   );
 }
 
-// ── Main Litigation Page ──────────────────────────────────────────────────
-export default function LegalPage() {
-  const [drafts, setDrafts] = useState((NOTICES_DB.drafts || []).map(d => ({ ...d })));
-  const [selectedNoticeType, setSelectedNoticeType] = useState('');
-  const [filterGroup, setFilterGroup] = useState('');
+// ── Field Renderer ─────────────────────────────────────────────────────────
+function FormField({ field, value, onChange }) {
+  const base = { width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.6rem 0.9rem', color: 'var(--text)', fontSize: '0.88rem', fontFamily: 'inherit', transition: 'all 0.2s', resize: 'vertical' };
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-soft)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        {field.label}{field.required && <span style={{ color: '#EF4444', marginLeft: '2px' }}>*</span>}
+      </label>
+      {field.type === 'textarea' ? (
+        <textarea rows={3} style={{ ...base }} placeholder={field.placeholder} value={value} onChange={e => onChange(field.id, e.target.value)} />
+      ) : (
+        <input type={field.type} style={{ ...base }} placeholder={field.placeholder} value={value} onChange={e => onChange(field.id, e.target.value)} />
+      )}
+    </div>
+  );
+}
 
-  const handleUploadData = (e) => {
+// ── Main Page ──────────────────────────────────────────────────────────────
+export default function LegalPage() {
+  const [step, setStep] = useState(1); // 1=select, 2=intake, 3=draft
+  const [selectedCat, setSelectedCat] = useState(null);
+  const [formData, setFormData] = useState({});
+  const [generatedDraft, setGeneratedDraft] = useState('');
+  const [filterGroup, setFilterGroup] = useState('');
+  const [savedDrafts, setSavedDrafts] = useState([]);
+  const fileInputRef = useRef(null);
+  const draftRef = useRef(null);
+
+  const updateField = (id, val) => setFormData(prev => ({ ...prev, [id]: val }));
+
+  const handleUpload = (e) => {
     if (!e.target.files?.length) return;
     const file = e.target.files[0];
-    if (!selectedNoticeType) { alert('Please select a notice type first, then upload.'); e.target.value = ''; return; }
-
-    const group = GST_NOTICE_TYPES.find(g => g.items.some(i => i.value === selectedNoticeType));
-    const item = GST_NOTICE_TYPES.flatMap(g => g.items).find(i => i.value === selectedNoticeType);
-
-    const newDraft = {
-      draft_id: `DRF-${Date.now()}`,
-      draft_type: item?.label || selectedNoticeType,
-      client_name: file.name.replace(/\.[^.]+$/, '') || 'Uploaded Client',
-      notice_ref: `${item?.short || 'NOTICE'}/AUTO/${new Date().getFullYear()}`,
-      date_generated: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-      status: 'Needs Review',
-      color: group?.color,
-      forms: getDraftTemplates(selectedNoticeType),
+    if (!selectedCat) { alert('Select a notice category first, then upload.'); e.target.value = ''; return; }
+    // Mock auto-fill from upload
+    const autoFill = {
+      notice_reference_number: `${selectedCat.id.toUpperCase().substring(0,6)}/AUTO/${new Date().getFullYear()}/001`,
+      date_of_notice: new Date().toISOString().split('T')[0],
+      reply_due_date: new Date(Date.now() + 30*86400000).toISOString().split('T')[0],
+      department_allegation: `[Auto-extracted from: ${file.name}] — Department has alleged discrepancies as per the uploaded notice document.`,
     };
-    setDrafts(prev => [newDraft, ...prev]);
+    setFormData(prev => ({ ...prev, ...autoFill }));
+    alert(`✅ "${file.name}" parsed! Key fields auto-filled. Please verify and complete remaining details.`);
+    setStep(2);
     e.target.value = '';
-    alert(`✅ "${file.name}" processed! Draft generated under "${selectedNoticeType}" with 4 response forms.`);
   };
 
-  const handleGenerateTemplate = () => {
-    if (!selectedNoticeType) { alert('Please select a notice type first.'); return; }
-    const group = GST_NOTICE_TYPES.find(g => g.items.some(i => i.value === selectedNoticeType));
-    const item = GST_NOTICE_TYPES.flatMap(g => g.items).find(i => i.value === selectedNoticeType);
-
+  const generateDraft = () => {
+    if (!selectedCat) { alert('Please select a notice category.'); return; }
+    const text = selectedCat.draft_template(formData);
+    setGeneratedDraft(text);
     const newDraft = {
-      draft_id: `DRF-${Date.now()}`,
-      draft_type: item?.label || selectedNoticeType,
-      client_name: 'Template Draft',
-      notice_ref: `${item?.short || 'NOTICE'}/TEMPLATE`,
-      date_generated: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-      status: 'Needs Review',
-      color: group?.color,
-      forms: getDraftTemplates(selectedNoticeType),
+      id: `DRF-${Date.now()}`,
+      title: selectedCat.title,
+      color: selectedCat.color,
+      risk: selectedCat.risk,
+      client: formData.legal_name || 'Unnamed Client',
+      notice_ref: formData.notice_reference_number || 'N/A',
+      date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+      text,
     };
-    setDrafts(prev => [newDraft, ...prev]);
+    setSavedDrafts(prev => [newDraft, ...prev]);
+    setStep(3);
   };
 
-  const deleteDraft = (id) => {
-    if (confirm('Delete this draft?')) setDrafts(prev => prev.filter(d => d.draft_id !== id));
+  const copyDraft = () => {
+    navigator.clipboard.writeText(generatedDraft);
+    alert('Draft copied to clipboard!');
   };
 
-  const allGroups = [...new Set(GST_NOTICE_TYPES.map(g => g.group))];
+  const printDraft = () => {
+    const w = window.open('', '_blank');
+    w.document.write(`<html><head><title>GST Notice Reply — MARKUP.AI</title><style>body{font-family:'Courier New',monospace;font-size:13px;line-height:1.7;padding:40px;white-space:pre-wrap;max-width:800px;margin:0 auto}h1{font-family:sans-serif;font-size:16px;}</style></head><body><h1>GST Notice Reply — Generated by MARKUP.AI</h1><pre>${generatedDraft}</pre></body></html>`);
+    w.document.close();
+    w.print();
+  };
+
+  const resetFlow = () => { setStep(1); setSelectedCat(null); setFormData({}); setGeneratedDraft(''); };
+
+  // Fields to show — always common fields; only show monetary/hearing fields if relevant
+  const visibleFields = PROMPT_LIBRARY.common_fields;
 
   return (
     <section className="view active" id="view-legal">
+      {/* ── Page Header ── */}
       <div className="page-header">
         <div>
-          <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}><Scales size={28} /> Litigation Draft Centre</h1>
-          <p>Select a notice type → upload document or generate template → get 4 ready-to-use draft forms.</p>
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <Scales size={26} /> Litigation Draft Centre
+          </h1>
+          <p style={{ marginTop: '0.25rem' }}>
+            Select notice type → fill intake form → generate department-ready reply in formal GST legal language.
+          </p>
         </div>
         <div className="header-actions">
-          <input type="file" id="legal-data-upload" style={{ display: 'none' }} onChange={handleUploadData} accept=".pdf,.json,.xlsx,.xls,.docx,.doc,.png,.jpg,.jpeg" />
-          <button className="btn-secondary" onClick={() => document.getElementById('legal-data-upload').click()}>
-            <UploadSimple /> Upload Notice (All Types)
+          <input ref={fileInputRef} type="file" style={{ display: 'none' }} accept=".pdf,.json,.xlsx,.xls,.docx,.doc,.png,.jpg,.jpeg,.webp" onChange={handleUpload} />
+          <button className="btn-secondary" onClick={() => fileInputRef.current?.click()}>
+            <UploadSimple size={16} /> Upload Notice (All Types)
           </button>
-          <button className="btn-primary" onClick={handleGenerateTemplate}>
-            <FilePlus /> Generate Template
-          </button>
+          {step > 1 && (
+            <button className="btn-secondary" onClick={resetFlow}><X size={14} /> New Draft</button>
+          )}
+          {step === 2 && (
+            <button className="btn-primary" onClick={generateDraft}><FilePlus size={16} /> Generate Draft</button>
+          )}
         </div>
       </div>
 
-      {/* Notice Type Selector Bar */}
-      <div style={{
-        background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '14px',
-        padding: '1.25rem 1.5rem', marginBottom: '1.75rem', display: 'flex', gap: '1rem',
-        alignItems: 'flex-start', flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-      }}>
-        <div style={{ flex: '1', minWidth: '260px' }}>
-          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-soft)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.5rem' }}>
-            Select Notice Type &amp; Section
-          </label>
-          <select className="mf-select" value={selectedNoticeType} onChange={e => setSelectedNoticeType(e.target.value)} style={{ width: '100%' }}>
-            <option value="">— Select Notice Type to Generate Draft —</option>
-            {GST_NOTICE_TYPES.map(g => (
-              <optgroup key={g.group} label={g.group}>
-                {g.items.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
-              </optgroup>
-            ))}
-          </select>
-        </div>
+      {/* ── Step Indicators ── */}
+      <div style={{ display: 'flex', gap: '0', marginBottom: '2rem', alignItems: 'center' }}>
+        {[
+          [1, '1', 'Select Category'],
+          ['arrow1', null, null],
+          [2, '2', 'Fill Intake Form'],
+          ['arrow2', null, null],
+          [3, '3', 'Review & Save Draft'],
+        ].map((item) => {
+          if (item[1] === null) return <ArrowRight key={item[0]} size={16} color="var(--text-soft)" style={{ margin: '0 0.5rem' }} />;
+          const isActive = step === item[0];
+          const isDone = step > item[0];
+          return (
+            <div key={item[0]} onClick={() => { if (isDone) setStep(item[0]); }} style={{
+              display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem',
+              borderRadius: '8px', cursor: isDone ? 'pointer' : 'default',
+              background: isActive ? 'rgba(99,102,241,0.1)' : 'transparent',
+              border: `1px solid ${isActive ? '#6366F1' : isDone ? '#10B981' : 'var(--border)'}`,
+              transition: 'all 0.2s'
+            }}>
+              <div style={{
+                width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: isActive ? '#6366F1' : isDone ? '#10B981' : 'var(--border)',
+                color: '#fff', fontSize: '0.72rem', fontWeight: 800, flexShrink: 0
+              }}>{isDone ? '✓' : item[0]}</div>
+              <span style={{ fontSize: '0.82rem', fontWeight: isActive ? 700 : 500, color: isActive ? '#6366F1' : isDone ? '#10B981' : 'var(--text-soft)' }}>{item[2]}</span>
+            </div>
+          );
+        })}
+      </div>
 
-        {/* Filter existing drafts by group */}
+      {/* ════════════ STEP 1: Category Selection ════════════ */}
+      {step === 1 && (
         <div>
-          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-soft)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.5rem' }}>
-            Filter Saved Drafts
-          </label>
-          <select className="mf-select" value={filterGroup} onChange={e => setFilterGroup(e.target.value)}>
-            <option value="">All Categories</option>
-            {allGroups.map(g => <option key={g} value={g}>{g}</option>)}
-          </select>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h2 style={{ fontSize: '1rem', fontWeight: 700 }}>Select GST Notice Category</h2>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-soft)' }}>{PROMPT_LIBRARY.categories.length} categories available</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.85rem', marginBottom: '1.5rem' }}>
+            {PROMPT_LIBRARY.categories.map(cat => (
+              <CategoryCard
+                key={cat.id}
+                cat={cat}
+                selected={selectedCat?.id === cat.id}
+                onClick={() => { setSelectedCat(cat); }}
+              />
+            ))}
+          </div>
+          {selectedCat && (
+            <div style={{ background: 'var(--bg-surface)', border: `1px solid ${selectedCat.color}`, borderRadius: '14px', padding: '1.5rem', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '1.05rem', marginBottom: '0.4rem' }}>{selectedCat.title}</div>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-soft)', marginBottom: '0.75rem' }}>{selectedCat.sections}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                    {selectedCat.dashboard_labels.map(l => (
+                      <span key={l} style={{ padding: '0.2rem 0.6rem', borderRadius: '99px', fontSize: '0.72rem', fontWeight: 600, background: `${selectedCat.color}18`, color: selectedCat.color, border: `1px solid ${selectedCat.color}35` }}>{l}</span>
+                    ))}
+                  </div>
+                </div>
+                <button className="btn-primary" onClick={() => setStep(2)} style={{ background: `linear-gradient(135deg, ${selectedCat.color}, ${selectedCat.color}cc)`, boxShadow: `0 4px 14px ${selectedCat.color}50`, flexShrink: 0 }}>
+                  Proceed to Intake Form <ArrowRight size={14} />
+                </button>
+              </div>
+
+              <div style={{ marginTop: '1.25rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-soft)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.6rem' }}>⚡ Clarifying Questions This Draft Will Address</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  {selectedCat.clarification_questions.map((q, i) => (
+                    <div key={i} style={{ display: 'flex', gap: '0.6rem', fontSize: '0.83rem', color: 'var(--text)' }}>
+                      <span style={{ color: selectedCat.color, fontWeight: 700, flexShrink: 0 }}>Q{i+1}.</span>
+                      <span>{q}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
+      )}
 
-        {selectedNoticeType && (
-          <div style={{ alignSelf: 'flex-end', padding: '0.55rem 1rem', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '8px', fontSize: '0.85rem', color: '#6366F1', fontWeight: 600 }}>
-            Selected: {selectedNoticeType}
+      {/* ════════════ STEP 2: Intake Form ════════════ */}
+      {step === 2 && selectedCat && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1.5rem', alignItems: 'start' }}>
+          {/* Left: Form */}
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '16px', padding: '1.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.75rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ width: 4, height: 24, borderRadius: '99px', background: selectedCat.color }} />
+              <div>
+                <div style={{ fontWeight: 800, fontSize: '1rem' }}>{selectedCat.title}</div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-soft)' }}>{selectedCat.sections}</div>
+              </div>
+              <button onClick={() => setStep(1)} style={{ marginLeft: 'auto', background: 'none', border: '1px solid var(--border)', borderRadius: '6px', padding: '0.3rem 0.6rem', cursor: 'pointer', fontSize: '0.78rem', color: 'var(--text-soft)' }}>← Back</button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              {visibleFields.map(field => (
+                <div key={field.id} style={{ gridColumn: (field.type === 'textarea' || ['legal_name', 'department_allegation', 'client_explanation', 'documents_available', 'returns_filed', 'payment_made', 'relief_sought', 'special_instructions'].includes(field.id)) ? '1 / -1' : 'span 1' }}>
+                  <FormField field={field} value={formData[field.id] || ''} onChange={updateField} />
+                </div>
+              ))}
+            </div>
+
+            <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button className="btn-secondary" onClick={resetFlow}>Cancel</button>
+              <button className="btn-primary" onClick={generateDraft} style={{ background: `linear-gradient(135deg, ${selectedCat.color}, ${selectedCat.color}cc)`, boxShadow: `0 4px 14px ${selectedCat.color}40` }}>
+                <FilePlus size={16} /> Generate Draft Reply
+              </button>
+            </div>
           </div>
-        )}
-      </div>
 
-      {/* Drafts Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '1.25rem' }}>
-        {drafts
-          .filter(d => {
-            if (!filterGroup) return true;
-            const group = GST_NOTICE_TYPES.find(g => g.color === d.color || g.items.some(i => i.label === d.draft_type));
-            return group?.group === filterGroup;
-          })
-          .map((d, i) => (
-            <DraftCard key={d.draft_id || i} draft={d} onDelete={() => deleteDraft(d.draft_id)} />
-          ))}
+          {/* Right: Sidebar Helper */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', position: 'sticky', top: '1rem' }}>
+            <div style={{ background: 'var(--bg-surface)', border: `1px solid ${selectedCat.color}50`, borderRadius: '14px', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: selectedCat.color, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.75rem' }}>📋 Clarifying Questions</div>
+              {selectedCat.clarification_questions.map((q, i) => (
+                <div key={i} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.6rem', fontSize: '0.82rem', alignItems: 'flex-start' }}>
+                  <span style={{ color: selectedCat.color, fontWeight: 700, flexShrink: 0, marginTop: '1px' }}>Q{i+1}.</span>
+                  <span style={{ color: 'var(--text)', lineHeight: '1.45' }}>{q}</span>
+                </div>
+              ))}
+            </div>
 
-        {drafts.length === 0 && (
-          <div style={{ gridColumn: '1 / -1', padding: '4rem', textAlign: 'center', color: 'var(--text-soft)' }}>
-            <Scales size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
-            <h3>No drafts yet</h3>
-            <p style={{ marginTop: '0.5rem' }}>Select a notice type above and click "Generate Template" or upload a notice document.</p>
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '14px', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-soft)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.75rem' }}>✅ Review Checklist</div>
+              {selectedCat.review_checklist.map((item, i) => (
+                <div key={i} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', fontSize: '0.82rem', alignItems: 'flex-start' }}>
+                  <span style={{ color: '#10B981', flexShrink: 0, marginTop: '1px' }}>✓</span>
+                  <span style={{ color: 'var(--text)', lineHeight: '1.4' }}>{item}</span>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '14px', padding: '1rem', fontSize: '0.78rem', color: 'var(--text-soft)', lineHeight: '1.6' }}>
+              <div style={{ fontWeight: 700, color: '#6366F1', marginBottom: '0.4rem' }}>📜 Global Drafting Rules</div>
+              {PROMPT_LIBRARY.global_rules.slice(0, 5).map((r, i) => <div key={i}>• {r}</div>)}
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* ════════════ STEP 3: Generated Draft ════════════ */}
+      {step === 3 && generatedDraft && (
+        <div>
+          <div style={{ background: 'var(--bg-surface)', border: `1px solid ${selectedCat?.color || 'var(--border)'}`, borderRadius: '16px', overflow: 'hidden' }}>
+            {/* Draft header */}
+            <div style={{ background: `linear-gradient(135deg, ${selectedCat?.color || '#6366F1'}15, transparent)`, padding: '1.25rem 1.75rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: '1.05rem' }}>📄 {selectedCat?.title || 'Draft'}</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-soft)', marginTop: '0.2rem' }}>
+                  {formData.legal_name || '[Client]'} · {formData.notice_reference_number || '[Notice Ref]'} · {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+                <button className="btn-secondary" onClick={() => setStep(2)} style={{ fontSize: '0.82rem', padding: '0.4rem 0.8rem' }}>← Edit</button>
+                <button className="btn-secondary" onClick={copyDraft} style={{ fontSize: '0.82rem', padding: '0.4rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Copy size={14} /> Copy</button>
+                <button className="btn-secondary" onClick={printDraft} style={{ fontSize: '0.82rem', padding: '0.4rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Printer size={14} /> Print / PDF</button>
+                <button className="btn-primary" onClick={resetFlow} style={{ fontSize: '0.82rem', padding: '0.4rem 0.8rem' }}><FilePlus size={14} /> New Draft</button>
+              </div>
+            </div>
+
+            {/* Review checklist banner */}
+            {selectedCat?.review_checklist && (
+              <div style={{ background: 'rgba(16,185,129,0.06)', borderBottom: '1px solid rgba(16,185,129,0.2)', padding: '0.75rem 1.75rem', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#10B981', textTransform: 'uppercase', letterSpacing: '0.05em' }}>✅ Review Checklist:</span>
+                {selectedCat.review_checklist.map((item, i) => (
+                  <span key={i} style={{ fontSize: '0.75rem', color: 'var(--text-soft)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <CheckCircle size={11} color="#10B981" /> {item}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Draft body */}
+            <div ref={draftRef} style={{
+              padding: '2rem 2.5rem', fontFamily: "'Courier New', Courier, monospace",
+              fontSize: '0.84rem', lineHeight: '1.85', whiteSpace: 'pre-wrap',
+              color: 'var(--text)', maxHeight: '72vh', overflowY: 'auto',
+              background: 'var(--bg)'
+            }}>
+              {generatedDraft}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════ Saved Drafts ════════════ */}
+      {savedDrafts.length > 0 && (
+        <div style={{ marginTop: '2.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h2 style={{ fontSize: '1rem', fontWeight: 700 }}>Saved Drafts <span style={{ background: '#6366F1', color: '#fff', borderRadius: '99px', padding: '0.1rem 0.5rem', fontSize: '0.72rem' }}>{savedDrafts.length}</span></h2>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1rem' }}>
+            {savedDrafts.map(d => (
+              <div key={d.id} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
+                <div style={{ height: '3px', background: d.color }} />
+                <div style={{ padding: '1.1rem 1.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                    <div>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '0.12rem 0.45rem', borderRadius: '99px', background: `${RISK_COLORS[d.risk]}18`, color: RISK_COLORS[d.risk], border: `1px solid ${RISK_COLORS[d.risk]}30` }}>{RISK_LABELS[d.risk]}</span>
+                      <div style={{ fontWeight: 700, fontSize: '0.9rem', marginTop: '0.35rem' }}>{d.title}</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.35rem' }}>
+                      <button className="icon-btn-sm" onClick={() => { setGeneratedDraft(d.text); setSelectedCat(PROMPT_LIBRARY.categories.find(c => c.title === d.title)); setStep(3); }}>👁</button>
+                      <button className="icon-btn-sm" onClick={() => { navigator.clipboard.writeText(d.text); alert('Copied!'); }}><Copy size={13} /></button>
+                      <button className="icon-btn-sm" onClick={() => setSavedDrafts(prev => prev.filter(x => x.id !== d.id))} style={{ color: '#ef4444' }}><X size={13} /></button>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-soft)', display: 'flex', gap: '1rem' }}>
+                    <span>👤 {d.client}</span>
+                    <span>📄 {d.notice_ref}</span>
+                    <span>📅 {d.date}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

@@ -54,8 +54,8 @@ export default function ClientsPage() {
           <p>All <strong id="clientTotalLabel">{clients.length}</strong> clients in MARKUP.AI</p>
         </div>
         <div className="header-actions">
-          <Link href="/select-module" style={{ display:'flex', alignItems:'center', gap:'0.4rem', padding:'0.5rem 1rem', border:'1px solid var(--border)', borderRadius:'8px', textDecoration:'none', color:'var(--text-soft)', fontSize:'0.85rem' }}>
-            <ArrowLeft size={14}/> Client Dashboard
+          <Link href="/" style={{ display:'flex', alignItems:'center', gap:'0.4rem', padding:'0.5rem 1rem', border:'1px solid var(--border)', borderRadius:'8px', textDecoration:'none', color:'var(--text-soft)', fontSize:'0.85rem' }}>
+            <ArrowLeft size={14}/> GST Dashboard
           </Link>
           <button className="btn-secondary" id="exportBtn"><DownloadSimple /> Export CSV</button>
           <button className="btn-primary" onClick={() => { setShowAddClient(true); setAddMode(''); }}><Plus /> Add Client</button>

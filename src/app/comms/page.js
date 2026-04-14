@@ -223,9 +223,17 @@ export default function CommsPage() {
               </select>
             </div>
 
-            <div style={{ marginBottom: '1rem' }}>
+            <div className="mf-group" style={{ marginBottom: '1rem' }}>
               <label className="mf-label"><CalendarBlank size={14} /> Due Date for Reminder</label>
-              <input type="date" className="mf-input" style={{ marginTop: '0.5rem' }} value={bulkDueDate} onChange={e => setBulkDueDate(e.target.value)} />
+              <div style={{ marginTop: '0.5rem', display: 'flex', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                <CustomCalendar value={bulkDueDate} onChange={setBulkDueDate} />
+                {bulkDueDate && (
+                  <div style={{ padding: '0.75rem 1rem', background: 'rgba(99,102,241,0.08)', borderRadius: '8px', border: '1px solid var(--primary-color, #6366f1)', alignSelf: 'center' }}>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-soft)', marginBottom: '0.2rem' }}>Selected:</div>
+                    <div style={{ fontWeight: 700 }}>{new Date(bulkDueDate + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div style={{ marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

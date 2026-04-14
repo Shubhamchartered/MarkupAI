@@ -19,7 +19,7 @@ export default function LayoutWrapper({ children }) {
     }
   }, [pathname, router]);
 
-  const isAuthPage = pathname === '/login' || pathname === '/select-module';
+  const isAuthPage = pathname === '/login' || pathname === '/select-module' || pathname === '/income-tax-dashboard';
 
   if (!mounted) {
     return null; // Don't render until client side is hydrated to prevent mismatch and content flash

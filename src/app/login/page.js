@@ -28,8 +28,11 @@ export default function LoginPage() {
           <div className="brand-icon" style={{ fontSize: "3rem", color: "var(--primary-color)", marginBottom: "1rem" }}>
             <Receipt weight="bold" />
           </div>
-          <h1>MARKUP <span style={{fontWeight: 300}}>Pro</span></h1>
-          <p>Login to your subscription account</p>
+          <div style={{ fontSize: '2.5rem', fontWeight: 900, letterSpacing: '-1px', marginBottom: '0.5rem' }}>
+              MARKUP<span style={{ color: '#8B5CF6' }}>.AI</span>
+            </div>
+            <p style={{ color: 'var(--text-soft)', fontSize: '0.95rem', marginBottom: '0' }}>Intelligent Tax Platform</p>
+            <p style={{ marginTop: '0.25rem' }}>Login to your subscription account</p>
         </div>
 
         {error && (

@@ -5,8 +5,8 @@ import { Inter } from 'next/font/google';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  title: 'MARKUP Pro — Client Dashboard',
-  description: 'Premium client management dashboard for tax professionals.',
+  title: 'MARKUP.AI — Intelligent Tax Platform',
+  description: 'AI-powered GST & Income Tax management platform for tax professionals.',
 };
 
 export default function RootLayout({ children }) {

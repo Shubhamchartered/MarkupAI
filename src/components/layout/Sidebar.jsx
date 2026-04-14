@@ -4,10 +4,28 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
-  Receipt, Brain, SquaresFour, UsersThree, 
+  Brain, SquaresFour, UsersThree, 
   CaretDown, UserList, WarningOctagon, Scales, 
-  ChatCircleDots, FileCode, Export, Gear 
+  ChatCircleDots, Export, Gear, SparkleIcon
 } from '@phosphor-icons/react';
+
+// Brand logo using text instead of Receipt icon for new branding
+function MarkupLogo() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      <div style={{
+        width: 36, height: 36, borderRadius: '10px',
+        background: 'linear-gradient(135deg, #6366F1, #8B5CF6)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: '#fff', fontWeight: 900, fontSize: '1.1rem', letterSpacing: '-1px'
+      }}>M</div>
+      <div className="brand-text">
+        <span className="brand-name" style={{ letterSpacing: '0.05em' }}>MARKUP</span>
+        <span className="brand-sub" style={{ color: '#8B5CF6', fontWeight: 700 }}>.AI</span>
+      </div>
+    </div>
+  );
+}
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -16,11 +34,7 @@ export default function Sidebar() {
   return (
     <aside className="sidebar" id="sidebar">
       <div className="sidebar-brand">
-        <div className="brand-icon"><Receipt weight="bold" /></div>
-        <div className="brand-text">
-          <span className="brand-name">MARKUP</span>
-          <span className="brand-sub">Pro</span>
-        </div>
+        <MarkupLogo />
       </div>
 
       <nav className="sidebar-nav" id="mainNav">
@@ -34,7 +48,7 @@ export default function Sidebar() {
 
         <Link href="/" className={`nav-link ${pathname === '/' ? 'active' : ''}`}>
           <SquaresFour />
-          <span>Dashboard</span>
+          <span>GST Dashboard</span>
         </Link>
 
         {/* Client Group */}
@@ -56,16 +70,12 @@ export default function Sidebar() {
             </Link>
             <Link href="/notices" className={`nav-link nav-sub ${pathname === '/notices' ? 'active' : ''}`}>
               <WarningOctagon />
-              <span>Notices</span>
+              <span>Notices & Matter</span>
               <span className="nav-badge danger">8</span>
             </Link>
             <Link href="/legal" className={`nav-link nav-sub ${pathname === '/legal' ? 'active' : ''}`}>
               <Scales />
               <span>Litigation Drafts</span>
-            </Link>
-            <Link href="/matter" className={`nav-link nav-sub ${pathname === '/matter' ? 'active' : ''}`}>
-              <FileCode />
-              <span>Matter Record</span>
             </Link>
             <Link href="/comms" className={`nav-link nav-sub ${pathname === '/comms' ? 'active' : ''}`}>
               <ChatCircleDots />

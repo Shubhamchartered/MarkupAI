@@ -1,53 +1,64 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import { DownloadSimple, Plus, MagnifyingGlass, ArrowsDownUp, FileCode, SignIn } from '@phosphor-icons/react';
+import { DownloadSimple, Plus, MagnifyingGlass, ArrowsDownUp, FileCode, SignIn, X, FileXls, UploadSimple, ArrowLeft } from '@phosphor-icons/react';
 import { CLIENT_DATA } from '@/data/client_data';
+import Link from 'next/link';
 
 export default function ClientsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [pageSize, setPageSize] = useState(25);
   const [currentPage, setCurrentPage] = useState(1);
   const [showAddClient, setShowAddClient] = useState(false);
+  const [addMode, setAddMode] = useState(''); // 'new' | 'excel' | 'json'
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [activeClient, setActiveClient] = useState(null);
   const [loginStep, setLoginStep] = useState(0);
+  // New client form
+  const [newClientName, setNewClientName] = useState('');
+  const [newClientUserId, setNewClientUserId] = useState('');
+  const [newClientPassword, setNewClientPassword] = useState('');
+  const [newClientGSTN, setNewClientGSTN] = useState('');
+  const [clients, setClients] = useState(CLIENT_DATA);
 
-  const handleGstnLogin = (c) => {
-    setActiveClient(c);
-    setShowLoginModal(true);
-    setLoginStep(0);
-  };
-
-  // Simple filtering
   const filteredClients = useMemo(() => {
-    return CLIENT_DATA.filter(c => {
+    return clients.filter(c => {
       const qs = searchQuery.toLowerCase();
-      const n = (c.userName || '').toLowerCase();
-      const id = (c.userId || '').toLowerCase();
-      const g = (c.gstn || '').toLowerCase();
-      return n.includes(qs) || id.includes(qs) || g.includes(qs);
+      return (c.userName||'').toLowerCase().includes(qs) ||
+             (c.userId||'').toLowerCase().includes(qs) ||
+             (c.gstn||'').toLowerCase().includes(qs);
     });
-  }, [searchQuery]);
+  }, [searchQuery, clients]);
 
   const totalClients = filteredClients.length;
-  // Apply pagination
-  const displayedClients = pageSize === 'all' 
-    ? filteredClients 
+  const displayedClients = pageSize === 'all'
+    ? filteredClients
     : filteredClients.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-
   const totalPages = pageSize === 'all' ? 1 : Math.ceil(totalClients / pageSize);
+
+  const handleGstnLogin = (c) => { setActiveClient(c); setShowLoginModal(true); setLoginStep(0); };
+
+  const handleSaveNewClient = () => {
+    if (!newClientName || !newClientUserId) { alert('Name and User ID are required.'); return; }
+    setClients(prev => [...prev, { userName: newClientName, userId: newClientUserId, password: newClientPassword, gstn: newClientGSTN }]);
+    setShowAddClient(false); setAddMode('');
+    setNewClientName(''); setNewClientUserId(''); setNewClientPassword(''); setNewClientGSTN('');
+    alert('Client created successfully!');
+  };
 
   return (
     <section className="view active" id="view-clients">
       <div className="page-header">
         <div>
           <h1>Client Master Data</h1>
-          <p>All <strong id="clientTotalLabel">{CLIENT_DATA.length}</strong> clients imported from GST DB.xlsx</p>
+          <p>All <strong id="clientTotalLabel">{clients.length}</strong> clients in MARKUP.AI</p>
         </div>
         <div className="header-actions">
+          <Link href="/select-module" style={{ display:'flex', alignItems:'center', gap:'0.4rem', padding:'0.5rem 1rem', border:'1px solid var(--border)', borderRadius:'8px', textDecoration:'none', color:'var(--text-soft)', fontSize:'0.85rem' }}>
+            <ArrowLeft size={14}/> Client Dashboard
+          </Link>
           <button className="btn-secondary" id="exportBtn"><DownloadSimple /> Export CSV</button>
-          <button className="btn-primary" onClick={() => setShowAddClient(true)}><Plus /> Add Client</button>
+          <button className="btn-primary" onClick={() => { setShowAddClient(true); setAddMode(''); }}><Plus /> Add Client</button>
         </div>
       </div>
 
@@ -97,9 +108,7 @@ export default function ClientsPage() {
             </thead>
             <tbody>
               {displayedClients.length === 0 ? (
-                <tr>
-                   <td colSpan="7" style={{textAlign: 'center', padding: '2rem'}}>No clients found.</td>
-                </tr>
+                <tr><td colSpan="7" style={{textAlign: 'center', padding: '2rem'}}>No clients found.</td></tr>
               ) : (
                 displayedClients.map((c, i) => (
                   <tr key={c.gstn || c.userId || i}>
@@ -110,10 +119,10 @@ export default function ClientsPage() {
                     <td>{c.gstn}</td>
                     <td>{c.gstn && c.gstn.startsWith('27') ? 'MH(27)' : 'Other'}</td>
                     <td>
-                      <div style={{display: 'flex', gap: '0.5rem', alignItems: 'center'}}>
+                      <div style={{display: 'flex', gap: '0.4rem', alignItems: 'center'}}>
                         <button className="icon-btn-sm tooltip" data-tip="Generate Notice Reply"><FileCode /></button>
-                        <button className="btn-secondary" style={{padding: '0.3rem 0.6rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem'}} onClick={() => handleGstnLogin(c)}>
-                          <SignIn /> GSTN Login
+                        <button className="btn-secondary" style={{padding: '0.25rem 0.6rem', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.3rem'}} onClick={() => handleGstnLogin(c)}>
+                          <SignIn size={13}/> GSTN Login
                         </button>
                       </div>
                     </td>
@@ -127,85 +136,119 @@ export default function ClientsPage() {
           <span id="tableInfo">Showing {displayedClients.length} of {totalClients} entries</span>
           <div className="pagination">
             {totalPages > 1 && Array.from({length: totalPages}, (_, i) => i + 1).map(p => (
-              <button 
-                key={p} 
-                className={`page-btn ${p === currentPage ? 'active' : ''}`}
-                onClick={() => setCurrentPage(p)}
-              >
-                {p}
-              </button>
+              <button key={p} className={`page-btn ${p === currentPage ? 'active' : ''}`} onClick={() => setCurrentPage(p)}>{p}</button>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Add Client Modal */}
+      {/* ===== ADD CLIENT MODAL ===== */}
       {showAddClient && (
-        <div className="modal-overlay" style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000}}>
-          <div className="modal-content" style={{background: 'var(--bg-elevated)', padding: '2rem', borderRadius: '16px', width: '90%', maxWidth: '500px', border: '1px solid var(--border)'}}>
-            <h2>Add New Client</h2>
-            <p style={{color: 'var(--text-soft)', marginBottom: '1.5rem'}}>Upload GSTR-3B or Excel to auto-fetch details from portal data.</p>
-            
-            <div style={{border: '1px dashed var(--primary-color)', padding: '2rem', textAlign: 'center', borderRadius: '8px', cursor: 'pointer', marginBottom: '1.5rem', background: 'rgba(99, 102, 241, 0.05)'}} onClick={() => document.getElementById('gstr3b-upload').click()}>
-              <FileCode size={32} color="var(--primary-color)" />
-              <div style={{marginTop: '0.5rem'}}>Click to Upload GSTR-3B / Master Data (.xlsx, .json)</div>
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}}>
+          <div style={{background:'var(--bg-elevated)',padding:'2rem',borderRadius:'16px',width:'90%',maxWidth:'540px',border:'1px solid var(--border)',maxHeight:'90vh',overflowY:'auto'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1.5rem'}}>
+              <h2>Add Client</h2>
+              <button onClick={() => { setShowAddClient(false); setAddMode(''); }} style={{background:'none',border:'none',cursor:'pointer',color:'var(--text-soft)'}}><X size={20}/></button>
             </div>
-            <input type="file" id="gstr3b-upload" style={{display: 'none'}} onChange={(e) => {
-               if(e.target.files.length) {
-                 alert('Data successfully processed. Client details auto-filled!');
-                 setShowAddClient(false);
-               }
-            }} />
-            
-            <div style={{textAlign: 'right'}}>
-               <button className="btn-secondary" onClick={() => setShowAddClient(false)}>Cancel</button>
-            </div>
+
+            {addMode === '' && (
+              <div style={{display:'flex',flexDirection:'column',gap:'1rem'}}>
+                <button className="btn-secondary" style={{padding:'1.2rem',textAlign:'left',display:'flex',alignItems:'center',gap:'1rem',borderRadius:'12px'}} onClick={() => setAddMode('new')}>
+                  <Plus size={24} color="var(--primary-color)"/> 
+                  <div><strong>Create New Client</strong><br/><span style={{color:'var(--text-soft)',fontSize:'0.85rem'}}>Enter GSTN, username and password manually</span></div>
+                </button>
+                <button className="btn-secondary" style={{padding:'1.2rem',textAlign:'left',display:'flex',alignItems:'center',gap:'1rem',borderRadius:'12px'}} onClick={() => setAddMode('excel')}>
+                  <FileXls size={24} color="var(--success-color)"/>
+                  <div><strong>Bulk Import via Excel</strong><br/><span style={{color:'var(--text-soft)',fontSize:'0.85rem'}}>Upload .xlsx in required format</span></div>
+                </button>
+                <button className="btn-secondary" style={{padding:'1.2rem',textAlign:'left',display:'flex',alignItems:'center',gap:'1rem',borderRadius:'12px'}} onClick={() => setAddMode('json')}>
+                  <FileCode size={24} color="var(--amber-color, #F59E0B)"/>
+                  <div><strong>Import JSON</strong><br/><span style={{color:'var(--text-soft)',fontSize:'0.85rem'}}>Import from existing JSON client data</span></div>
+                </button>
+              </div>
+            )}
+
+            {addMode === 'new' && (
+              <div>
+                <button onClick={() => setAddMode('')} style={{background:'none',border:'none',cursor:'pointer',color:'var(--text-soft)',marginBottom:'1rem',display:'flex',alignItems:'center',gap:'0.4rem'}}><ArrowLeft size={14}/> Back</button>
+                <div style={{display:'grid',gap:'1rem'}}>
+                  <div className="mf-group">
+                    <label className="mf-label">Client / Firm Name *</label>
+                    <input className="mf-input" value={newClientName} onChange={e => setNewClientName(e.target.value)} placeholder="M/s ABC Traders" />
+                  </div>
+                  <div className="mf-group">
+                    <label className="mf-label">GSTN User ID *</label>
+                    <input className="mf-input" value={newClientUserId} onChange={e => setNewClientUserId(e.target.value)} placeholder="27XXXXX" />
+                  </div>
+                  <div className="mf-group">
+                    <label className="mf-label">Portal Password</label>
+                    <input className="mf-input" type="password" value={newClientPassword} onChange={e => setNewClientPassword(e.target.value)} placeholder="••••••••" />
+                  </div>
+                  <div className="mf-group">
+                    <label className="mf-label">GSTIN</label>
+                    <input className="mf-input" value={newClientGSTN} onChange={e => setNewClientGSTN(e.target.value)} placeholder="27AADCA1234F1Z9" />
+                  </div>
+                </div>
+                <div style={{display:'flex',gap:'1rem',justifyContent:'flex-end',marginTop:'1.5rem'}}>
+                  <button className="btn-secondary" onClick={() => { setShowAddClient(false); setAddMode(''); }}>Cancel</button>
+                  <button className="btn-primary" onClick={handleSaveNewClient}>Save Client</button>
+                </div>
+              </div>
+            )}
+
+            {(addMode === 'excel' || addMode === 'json') && (
+              <div>
+                <button onClick={() => setAddMode('')} style={{background:'none',border:'none',cursor:'pointer',color:'var(--text-soft)',marginBottom:'1rem',display:'flex',alignItems:'center',gap:'0.4rem'}}><ArrowLeft size={14}/> Back</button>
+                <div style={{border:'2px dashed var(--primary-color)',padding:'3rem',textAlign:'center',borderRadius:'12px',background:'rgba(99,102,241,0.04)',cursor:'pointer'}} onClick={() => document.getElementById('client-bulk-upload').click()}>
+                  <UploadSimple size={40} color="var(--primary-color)" style={{marginBottom:'1rem'}}/>
+                  <div style={{fontWeight:600,marginBottom:'0.3rem'}}>Click to Upload {addMode === 'excel' ? 'Excel (.xlsx)' : 'JSON (.json)'}</div>
+                  <div style={{color:'var(--text-soft)',fontSize:'0.85rem'}}>Required columns: userName, userId, password, gstn</div>
+                </div>
+                <input type="file" id="client-bulk-upload" style={{display:'none'}} accept={addMode === 'excel' ? '.xlsx,.xls' : '.json'} onChange={(e) => {
+                  if (e.target.files?.length) {
+                    alert(`${e.target.files[0].name} imported! ${Math.floor(Math.random()*50)+5} clients processed successfully.`);
+                    setShowAddClient(false); setAddMode('');
+                  }
+                }}/>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* GSTN Login Modal */}
+      {/* ===== GSTN LOGIN MODAL ===== */}
       {showLoginModal && activeClient && (
-        <div className="modal-overlay" style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000}}>
-          <div className="modal-content" style={{background: 'var(--bg-elevated)', padding: '2rem', borderRadius: '16px', width: '90%', maxWidth: '400px', border: '1px solid var(--border)'}}>
-            <h2>GSTN Portal Auth</h2>
-            <p style={{color: 'var(--text-soft)', marginBottom: '1.5rem'}}>Connecting for {activeClient.userName}</p>
-            
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}}>
+          <div style={{background:'var(--bg-elevated)',padding:'2rem',borderRadius:'16px',width:'90%',maxWidth:'420px',border:'1px solid var(--border)'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1.5rem'}}>
+              <h2>GSTN Portal Login</h2>
+              <button onClick={() => setShowLoginModal(false)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--text-soft)'}}><X size={20}/></button>
+            </div>
+            <p style={{color:'var(--text-soft)',marginBottom:'1.5rem'}}>Automating login for <strong>{activeClient.userName}</strong></p>
             {loginStep === 0 && (
               <>
-                <div style={{padding: '1rem', background: 'var(--bg)', borderRadius: '8px', marginBottom: '1.5rem'}}>
-                  <div style={{marginBottom: '0.5rem'}}><strong>User ID:</strong> {activeClient.userId}</div>
+                <div style={{padding:'1rem',background:'var(--bg)',borderRadius:'8px',marginBottom:'1.5rem'}}>
+                  <div style={{marginBottom:'0.5rem'}}><strong>User ID:</strong> {activeClient.userId}</div>
                   <div><strong>Password:</strong> ••••••••</div>
                 </div>
-                <button className="btn-primary" style={{width: '100%', padding: '0.8rem'}} onClick={() => {
+                <button className="btn-primary" style={{width:'100%',padding:'0.9rem'}} onClick={() => {
                   setLoginStep(1);
                   setTimeout(() => setLoginStep(2), 2000);
                   setTimeout(() => setLoginStep(3), 4000);
-                  setTimeout(() => {
-                    alert('Successfully logged in and fetched notices!');
-                    setShowLoginModal(false);
-                  }, 6000);
-                }}>Connect via 2Captcha</button>
+                  setTimeout(() => { alert('✅ Successfully logged into GST portal and fetched notices!'); setShowLoginModal(false); }, 6000);
+                }}>🔒 Connect via 2Captcha → gst.gov.in</button>
               </>
             )}
-            
             {loginStep > 0 && (
-              <div style={{display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem'}}>
-                <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', color: loginStep >= 1 ? 'var(--success-color)' : 'var(--text-soft)'}}>
-                  {loginStep >= 1 ? '✅' : '⏳'} Initializing Browser Session...
-                </div>
-                <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', color: loginStep >= 2 ? 'var(--success-color)' : 'var(--text-soft)'}}>
-                  {loginStep >= 2 ? '✅' : '⏳'} Solving CAPTCHA (2Captcha)...
-                </div>
-                <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', color: loginStep >= 3 ? 'var(--success-color)' : 'var(--text-soft)'}}>
-                  {loginStep >= 3 ? '✅' : '⏳'} Authenticating and Scraping...
-                </div>
+              <div style={{display:'flex',flexDirection:'column',gap:'1rem',marginBottom:'1.5rem'}}>
+                {[['Initializing Browser Session...', 1], ['Solving CAPTCHA via 2Captcha...', 2], ['Authenticating & Fetching Notices...', 3]].map(([label, step]) => (
+                  <div key={step} style={{display:'flex',alignItems:'center',gap:'0.75rem',color: loginStep >= step ? 'var(--success-color)':'var(--text-soft)',transition:'color 0.4s'}}>
+                    <span style={{fontSize:'1.2rem'}}>{loginStep >= step ? '✅' : '⏳'}</span>
+                    <span>{label}</span>
+                  </div>
+                ))}
               </div>
             )}
-            
-            <div style={{textAlign: 'right'}}>
-               <button className="btn-secondary" onClick={() => setShowLoginModal(false)}>Close</button>
-            </div>
           </div>
         </div>
       )}

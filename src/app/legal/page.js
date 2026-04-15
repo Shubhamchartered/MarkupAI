@@ -1,354 +1,712 @@
 "use client";
 
-import { useState, useRef } from 'react';
-import { Scales, UploadSimple, FilePlus, CalendarBlank, DownloadSimple, PaperPlaneTilt, Copy, X, CaretDown, Warning, CheckCircle, ArrowRight, Printer } from '@phosphor-icons/react';
+import { useState, useRef, useEffect } from 'react';
+import { Scales, UploadSimple, FilePlus, CalendarBlank, DownloadSimple, Copy, X, CaretDown, Warning, CheckCircle, ArrowRight, Printer, Eye, Spinner, FileText, Files, PencilSimple, ArrowLeft, MagicWand, ShieldCheck, CloudArrowUp } from '@phosphor-icons/react';
 import { PROMPT_LIBRARY } from '@/data/prompt_library';
 
 const RISK_COLORS = { critical: '#EF4444', high: '#F59E0B', medium: '#10B981', low: '#6366F1' };
 const RISK_LABELS = { critical: '🚨 Critical', high: '⚠️ High', medium: '🔵 Medium', low: '✅ Low' };
+const RISK_BADGE = { critical: { bg: '#EF444420', border: '#EF444440' }, high: { bg: '#F59E0B20', border: '#F59E0B40' }, medium: { bg: '#10B98120', border: '#10B98140' }, low: { bg: '#6366F120', border: '#6366F140' } };
 
-// ── Category Selector Card ─────────────────────────────────────────────────
+// ── Category Card ──────────────────────────────────────────────────────
 function CategoryCard({ cat, selected, onClick }) {
   return (
     <div onClick={onClick} style={{
       border: `2px solid ${selected ? cat.color : 'var(--border)'}`,
-      borderRadius: '12px', padding: '1rem', cursor: 'pointer',
-      background: selected ? `${cat.color}12` : 'var(--bg-elevated)',
-      transition: 'all 0.2s', position: 'relative', overflow: 'hidden'
-    }}>
-      <div style={{ height: '3px', background: cat.color, borderRadius: '99px', marginBottom: '0.75rem' }} />
-      <div style={{ fontWeight: 700, fontSize: '0.88rem', marginBottom: '0.25rem', lineHeight: '1.3' }}>{cat.title}</div>
-      <div style={{ fontSize: '0.72rem', color: 'var(--text-soft)', marginBottom: '0.5rem' }}>{cat.sections}</div>
+      borderRadius: '14px', padding: '1.1rem', cursor: 'pointer',
+      background: selected ? `${cat.color}10` : 'var(--bg-elevated)',
+      transition: 'all 0.25s', position: 'relative', overflow: 'hidden',
+    }}
+      onMouseOver={e => { if (!selected) e.currentTarget.style.borderColor = cat.color + '60'; }}
+      onMouseOut={e => { if (!selected) e.currentTarget.style.borderColor = 'var(--border)'; }}
+    >
+      <div style={{ height: '3px', background: cat.color, borderRadius: '99px', marginBottom: '0.65rem' }} />
+      <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.2rem', lineHeight: '1.35' }}>{cat.title}</div>
+      <div style={{ fontSize: '0.68rem', color: 'var(--text-soft)', marginBottom: '0.5rem', lineHeight: '1.4' }}>{cat.sections}</div>
       <span style={{
-        fontSize: '0.68rem', fontWeight: 700, padding: '0.1rem 0.5rem', borderRadius: '99px',
-        background: `${RISK_COLORS[cat.risk]}20`, color: RISK_COLORS[cat.risk], border: `1px solid ${RISK_COLORS[cat.risk]}40`
+        fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.45rem', borderRadius: '99px',
+        background: RISK_BADGE[cat.risk]?.bg, color: RISK_COLORS[cat.risk],
+        border: `1px solid ${RISK_BADGE[cat.risk]?.border}`
       }}>{RISK_LABELS[cat.risk]}</span>
-      {selected && (
-        <div style={{ position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: '50%', background: cat.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <CheckCircle size={12} color="#fff" weight="bold" />
-        </div>
-      )}
+      {selected && <div style={{ position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: '50%', background: cat.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CheckCircle size={12} color="#fff" weight="bold" /></div>}
     </div>
   );
 }
 
-// ── Field Renderer ─────────────────────────────────────────────────────────
-function FormField({ field, value, onChange }) {
-  const base = { width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.6rem 0.9rem', color: 'var(--text)', fontSize: '0.88rem', fontFamily: 'inherit', transition: 'all 0.2s', resize: 'vertical' };
+// ── Stepper ────────────────────────────────────────────────────────────
+function Stepper({ step, steps, onStepClick }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-soft)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-        {field.label}{field.required && <span style={{ color: '#EF4444', marginLeft: '2px' }}>*</span>}
-      </label>
-      {field.type === 'textarea' ? (
-        <textarea rows={3} style={{ ...base }} placeholder={field.placeholder} value={value} onChange={e => onChange(field.id, e.target.value)} />
-      ) : (
-        <input type={field.type} style={{ ...base }} placeholder={field.placeholder} value={value} onChange={e => onChange(field.id, e.target.value)} />
-      )}
-    </div>
-  );
-}
-
-// ── Main Page ──────────────────────────────────────────────────────────────
-export default function LegalPage() {
-  const [step, setStep] = useState(1); // 1=select, 2=intake, 3=draft
-  const [selectedCat, setSelectedCat] = useState(null);
-  const [formData, setFormData] = useState({});
-  const [generatedDraft, setGeneratedDraft] = useState('');
-  const [filterGroup, setFilterGroup] = useState('');
-  const [savedDrafts, setSavedDrafts] = useState([]);
-  const fileInputRef = useRef(null);
-  const draftRef = useRef(null);
-
-  const updateField = (id, val) => setFormData(prev => ({ ...prev, [id]: val }));
-
-  const handleUpload = (e) => {
-    if (!e.target.files?.length) return;
-    const file = e.target.files[0];
-    if (!selectedCat) { alert('Select a notice category first, then upload.'); e.target.value = ''; return; }
-    // Mock auto-fill from upload
-    const autoFill = {
-      notice_reference_number: `${selectedCat.id.toUpperCase().substring(0,6)}/AUTO/${new Date().getFullYear()}/001`,
-      date_of_notice: new Date().toISOString().split('T')[0],
-      reply_due_date: new Date(Date.now() + 30*86400000).toISOString().split('T')[0],
-      department_allegation: `[Auto-extracted from: ${file.name}] — Department has alleged discrepancies as per the uploaded notice document.`,
-    };
-    setFormData(prev => ({ ...prev, ...autoFill }));
-    alert(`✅ "${file.name}" parsed! Key fields auto-filled. Please verify and complete remaining details.`);
-    setStep(2);
-    e.target.value = '';
-  };
-
-  const generateDraft = () => {
-    if (!selectedCat) { alert('Please select a notice category.'); return; }
-    const text = selectedCat.draft_template(formData);
-    setGeneratedDraft(text);
-    const newDraft = {
-      id: `DRF-${Date.now()}`,
-      title: selectedCat.title,
-      color: selectedCat.color,
-      risk: selectedCat.risk,
-      client: formData.legal_name || 'Unnamed Client',
-      notice_ref: formData.notice_reference_number || 'N/A',
-      date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-      text,
-    };
-    setSavedDrafts(prev => [newDraft, ...prev]);
-    setStep(3);
-  };
-
-  const copyDraft = () => {
-    navigator.clipboard.writeText(generatedDraft);
-    alert('Draft copied to clipboard!');
-  };
-
-  const printDraft = () => {
-    const w = window.open('', '_blank');
-    w.document.write(`<html><head><title>GST Notice Reply — MARKUP.AI</title><style>body{font-family:'Courier New',monospace;font-size:13px;line-height:1.7;padding:40px;white-space:pre-wrap;max-width:800px;margin:0 auto}h1{font-family:sans-serif;font-size:16px;}</style></head><body><h1>GST Notice Reply — Generated by MARKUP.AI</h1><pre>${generatedDraft}</pre></body></html>`);
-    w.document.close();
-    w.print();
-  };
-
-  const resetFlow = () => { setStep(1); setSelectedCat(null); setFormData({}); setGeneratedDraft(''); };
-
-  // Fields to show — always common fields; only show monetary/hearing fields if relevant
-  const visibleFields = PROMPT_LIBRARY.common_fields;
-
-  return (
-    <section className="view active" id="view-legal">
-      {/* ── Page Header ── */}
-      <div className="page-header">
-        <div>
-          <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <Scales size={26} /> Litigation Draft Centre
-          </h1>
-          <p style={{ marginTop: '0.25rem' }}>
-            Select notice type → fill intake form → generate department-ready reply in formal GST legal language.
-          </p>
-        </div>
-        <div className="header-actions">
-          <input ref={fileInputRef} type="file" style={{ display: 'none' }} accept=".pdf,.json,.xlsx,.xls,.docx,.doc,.png,.jpg,.jpeg,.webp" onChange={handleUpload} />
-          <button className="btn-secondary" onClick={() => fileInputRef.current?.click()}>
-            <UploadSimple size={16} /> Upload Notice (All Types)
-          </button>
-          {step > 1 && (
-            <button className="btn-secondary" onClick={resetFlow}><X size={14} /> New Draft</button>
-          )}
-          {step === 2 && (
-            <button className="btn-primary" onClick={generateDraft}><FilePlus size={16} /> Generate Draft</button>
-          )}
-        </div>
-      </div>
-
-      {/* ── Step Indicators ── */}
-      <div style={{ display: 'flex', gap: '0', marginBottom: '2rem', alignItems: 'center' }}>
-        {[
-          [1, '1', 'Select Category'],
-          ['arrow1', null, null],
-          [2, '2', 'Fill Intake Form'],
-          ['arrow2', null, null],
-          [3, '3', 'Review & Save Draft'],
-        ].map((item) => {
-          if (item[1] === null) return <ArrowRight key={item[0]} size={16} color="var(--text-soft)" style={{ margin: '0 0.5rem' }} />;
-          const isActive = step === item[0];
-          const isDone = step > item[0];
-          return (
-            <div key={item[0]} onClick={() => { if (isDone) setStep(item[0]); }} style={{
-              display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem',
+    <div style={{ display: 'flex', gap: '0', marginBottom: '2rem', alignItems: 'center', flexWrap: 'wrap' }}>
+      {steps.map((s, i) => {
+        const stepNum = i + 1;
+        const isActive = step === stepNum;
+        const isDone = step > stepNum;
+        return (
+          <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
+            <div onClick={() => isDone && onStepClick(stepNum)} style={{
+              display: 'flex', alignItems: 'center', gap: '0.45rem', padding: '0.45rem 0.85rem',
               borderRadius: '8px', cursor: isDone ? 'pointer' : 'default',
               background: isActive ? 'rgba(99,102,241,0.1)' : 'transparent',
               border: `1px solid ${isActive ? '#6366F1' : isDone ? '#10B981' : 'var(--border)'}`,
               transition: 'all 0.2s'
             }}>
               <div style={{
-                width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 background: isActive ? '#6366F1' : isDone ? '#10B981' : 'var(--border)',
-                color: '#fff', fontSize: '0.72rem', fontWeight: 800, flexShrink: 0
-              }}>{isDone ? '✓' : item[0]}</div>
-              <span style={{ fontSize: '0.82rem', fontWeight: isActive ? 700 : 500, color: isActive ? '#6366F1' : isDone ? '#10B981' : 'var(--text-soft)' }}>{item[2]}</span>
+                color: '#fff', fontSize: '0.65rem', fontWeight: 800, flexShrink: 0
+              }}>{isDone ? '✓' : stepNum}</div>
+              <span style={{ fontSize: '0.78rem', fontWeight: isActive ? 700 : 500, color: isActive ? '#6366F1' : isDone ? '#10B981' : 'var(--text-soft)', whiteSpace: 'nowrap' }}>{s}</span>
             </div>
-          );
-        })}
+            {i < steps.length - 1 && <ArrowRight size={14} color="var(--text-soft)" style={{ margin: '0 0.3rem' }} />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Markdown-like text formatter ──────────────────────────────────────
+function formatText(text) {
+  if (!text) return '';
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/```([\s\S]*?)```/g, '<pre style="background:var(--bg);padding:1rem;border-radius:8px;border:1px solid var(--border);overflow-x:auto;margin:0.5rem 0;font-size:0.8rem;white-space:pre-wrap">$1</pre>')
+    .replace(/`(.*?)`/g, '<code style="background:var(--bg);padding:0.12rem 0.35rem;border-radius:4px;font-size:0.85em;border:1px solid var(--border)">$1</code>')
+    .replace(/^### (.*?)$/gm, '<h3 style="margin:0.8rem 0 0.35rem;font-size:0.95rem;color:var(--text)">$1</h3>')
+    .replace(/^## (.*?)$/gm, '<h2 style="margin:1rem 0 0.4rem;font-size:1.05rem;color:var(--text)">$1</h2>')
+    .replace(/^# (.*?)$/gm, '<h1 style="margin:1rem 0 0.5rem;font-size:1.15rem;color:var(--text)">$1</h1>')
+    .replace(/^- (.*?)$/gm, '<div style="padding-left:1rem;margin:0.12rem 0">• $1</div>')
+    .replace(/^\d+\. (.*?)$/gm, '<div style="padding-left:1rem;margin:0.12rem 0">$&</div>')
+    .replace(/\n/g, '<br/>');
+}
+
+// ── MAIN PAGE ──────────────────────────────────────────────────────────
+export default function LegalPage() {
+  const [step, setStep] = useState(1);
+  const [selectedCat, setSelectedCat] = useState(null);
+
+  // OCR State
+  const [noticeFile, setNoticeFile] = useState(null);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractedData, setExtractedData] = useState(null);
+  const [extractError, setExtractError] = useState('');
+
+  // Brief State
+  const [aiBrief, setAiBrief] = useState('');
+  const [isBriefing, setIsBriefing] = useState(false);
+
+  // Supporting Docs State
+  const [supportingDocs, setSupportingDocs] = useState([]);
+  const [specialInstructions, setSpecialInstructions] = useState('');
+
+  // Draft State
+  const [generatedDraft, setGeneratedDraft] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Saved Drafts
+  const [savedDrafts, setSavedDrafts] = useState([]);
+
+  const noticeInputRef = useRef(null);
+  const docInputRef = useRef(null);
+
+  const STEPS = ['Select Category', 'Upload & Extract', 'Review & Brief', 'Supporting Docs', 'Generate Draft'];
+
+  // Auto scroll to top on every step change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.querySelector('.main-content, main, .view')?.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [step]);
+
+  // ── STEP 2: Upload notice & OCR extract ──────────────────────────────
+  const handleNoticeUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setNoticeFile(file);
+    setExtractError('');
+    setIsExtracting(true);
+    setExtractedData(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('action', 'extract');
+
+      const res = await fetch('/api/ocr', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      if (data.error) {
+        setExtractError(data.error);
+      } else {
+        setExtractedData(data.extracted);
+        setStep(3); // Auto-advance to review
+      }
+    } catch (err) {
+      setExtractError('Failed to connect to AI. Please try again.');
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
+  // ── STEP 3: Generate AI brief ────────────────────────────────────────
+  const generateBrief = async () => {
+    if (!extractedData) return;
+    setIsBriefing(true);
+    setAiBrief('');
+
+    try {
+      const formData = new FormData();
+      formData.append('action', 'brief');
+      formData.append('extractedData', JSON.stringify(extractedData));
+
+      const res = await fetch('/api/ocr', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      if (data.error) {
+        setAiBrief(`⚠️ Error: ${data.error}`);
+      } else {
+        setAiBrief(data.brief);
+      }
+    } catch {
+      setAiBrief('⚠️ Failed to connect to AI.');
+    } finally {
+      setIsBriefing(false);
+    }
+  };
+
+  // ── STEP 4: Add supporting document ──────────────────────────────────
+  const handleDocUpload = (e) => {
+    const files = Array.from(e.target.files || []);
+    files.forEach(f => {
+      setSupportingDocs(prev => [...prev, { name: f.name, size: f.size, description: '', file: f }]);
+    });
+    e.target.value = '';
+  };
+
+  const updateDocDescription = (idx, desc) => {
+    setSupportingDocs(prev => prev.map((d, i) => i === idx ? { ...d, description: desc } : d));
+  };
+
+  const removeDoc = (idx) => setSupportingDocs(prev => prev.filter((_, i) => i !== idx));
+
+  // ── STEP 5: Generate AI Draft ────────────────────────────────────────
+  const generateDraft = async () => {
+    setIsGenerating(true);
+    setGeneratedDraft('');
+
+    try {
+      const res = await fetch('/api/draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          extractedData,
+          category: selectedCat?.title || 'GST Notice',
+          supportingDocs: supportingDocs.map(d => ({ name: d.name, description: d.description })),
+          specialInstructions,
+        }),
+      });
+      const data = await res.json();
+
+      if (data.error) {
+        setGeneratedDraft(`⚠️ Error: ${data.error}`);
+      } else {
+        setGeneratedDraft(data.draft);
+        // Save draft
+        setSavedDrafts(prev => [{
+          id: `DRF-${Date.now()}`,
+          title: selectedCat?.title || 'GST Notice',
+          color: selectedCat?.color || '#6366F1',
+          risk: selectedCat?.risk || 'medium',
+          client: extractedData?.legal_name || 'Client',
+          gstin: extractedData?.gstin || '',
+          notice_ref: extractedData?.notice_reference_number || 'N/A',
+          date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+          text: data.draft,
+        }, ...prev]);
+      }
+    } catch {
+      setGeneratedDraft('⚠️ Failed to connect to AI. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const copyText = (text) => { navigator.clipboard.writeText(text); alert('Copied to clipboard!'); };
+
+  const printDraft = (text) => {
+    const w = window.open('', '_blank');
+    w.document.write(`<html><head><title>GST Notice Reply — MARKUP.AI</title><style>body{font-family:'Georgia',serif;font-size:13px;line-height:1.8;padding:50px 60px;max-width:800px;margin:0 auto;color:#1a1a1a}h1,h2,h3{font-family:'Arial',sans-serif}pre{white-space:pre-wrap;font-family:'Courier New',monospace;font-size:12px;}</style></head><body>${text.replace(/\n/g,'<br/>')}</body></html>`);
+    w.document.close();
+    w.print();
+  };
+
+  const resetAll = () => {
+    setStep(1); setSelectedCat(null); setNoticeFile(null); setExtractedData(null);
+    setExtractError(''); setAiBrief(''); setSupportingDocs([]); setSpecialInstructions('');
+    setGeneratedDraft('');
+  };
+
+  // ── Extracted data field renderer ────────────────────────────────────
+  const DataField = ({ label, value, color }) => {
+    if (!value || value === 'null') return null;
+    return (
+      <div style={{ padding: '0.5rem 0.75rem', borderRadius: '8px', background: 'var(--bg)', border: '1px solid var(--border)' }}>
+        <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: color || 'var(--text-soft)', marginBottom: '0.15rem' }}>{label}</div>
+        <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text)', wordBreak: 'break-word' }}>{typeof value === 'string' ? value : JSON.stringify(value)}</div>
+      </div>
+    );
+  };
+
+  return (
+    <section className="view active" id="view-legal">
+      {/* HEADER */}
+      <div className="page-header">
+        <div>
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}><Scales size={26} /> Litigation Draft Centre</h1>
+          <p>Upload notice → AI extracts details → Review → Upload documents → Generate unique department-ready reply</p>
+        </div>
+        <div className="header-actions">
+          {step > 1 && <button className="btn-secondary" onClick={resetAll}><X size={14} /> Start Over</button>}
+        </div>
       </div>
 
-      {/* ════════════ STEP 1: Category Selection ════════════ */}
+      <Stepper step={step} steps={STEPS} onStepClick={setStep} />
+
+      {/* ════════════ STEP 1: SELECT CATEGORY ════════════ */}
       {step === 1 && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h2 style={{ fontSize: '1rem', fontWeight: 700 }}>Select GST Notice Category</h2>
-            <span style={{ fontSize: '0.82rem', color: 'var(--text-soft)' }}>{PROMPT_LIBRARY.categories.length} categories available</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-soft)' }}>{PROMPT_LIBRARY.categories.length} categories</span>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.85rem', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.8rem', marginBottom: '1.5rem' }}>
             {PROMPT_LIBRARY.categories.map(cat => (
-              <CategoryCard
-                key={cat.id}
-                cat={cat}
-                selected={selectedCat?.id === cat.id}
-                onClick={() => { setSelectedCat(cat); }}
-              />
+              <CategoryCard key={cat.id} cat={cat} selected={selectedCat?.id === cat.id} onClick={() => setSelectedCat(cat)} />
             ))}
           </div>
           {selectedCat && (
-            <div style={{ background: 'var(--bg-surface)', border: `1px solid ${selectedCat.color}`, borderRadius: '14px', padding: '1.5rem', marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '1.05rem', marginBottom: '0.4rem' }}>{selectedCat.title}</div>
-                  <div style={{ fontSize: '0.82rem', color: 'var(--text-soft)', marginBottom: '0.75rem' }}>{selectedCat.sections}</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                    {selectedCat.dashboard_labels.map(l => (
-                      <span key={l} style={{ padding: '0.2rem 0.6rem', borderRadius: '99px', fontSize: '0.72rem', fontWeight: 600, background: `${selectedCat.color}18`, color: selectedCat.color, border: `1px solid ${selectedCat.color}35` }}>{l}</span>
-                    ))}
-                  </div>
-                </div>
-                <button className="btn-primary" onClick={() => setStep(2)} style={{ background: `linear-gradient(135deg, ${selectedCat.color}, ${selectedCat.color}cc)`, boxShadow: `0 4px 14px ${selectedCat.color}50`, flexShrink: 0 }}>
-                  Proceed to Intake Form <ArrowRight size={14} />
-                </button>
+            <div style={{ 
+              position: 'sticky', bottom: 0, zIndex: 10,
+              background: 'var(--bg)', borderTop: '1px solid var(--border)',
+              padding: '1rem 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              marginTop: '1rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ width: 10, height: 10, borderRadius: '50%', background: selectedCat.color }} />
+                <span style={{ fontSize: '0.88rem', fontWeight: 600 }}>{selectedCat.title} selected</span>
+                <span style={{ fontSize: '0.72rem', padding: '0.12rem 0.5rem', borderRadius: '99px', background: RISK_BADGE[selectedCat.risk]?.bg, color: RISK_COLORS[selectedCat.risk], border: `1px solid ${RISK_BADGE[selectedCat.risk]?.border}`, fontWeight: 700 }}>{RISK_LABELS[selectedCat.risk]}</span>
               </div>
-
-              <div style={{ marginTop: '1.25rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
-                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-soft)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.6rem' }}>⚡ Clarifying Questions This Draft Will Address</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                  {selectedCat.clarification_questions.map((q, i) => (
-                    <div key={i} style={{ display: 'flex', gap: '0.6rem', fontSize: '0.83rem', color: 'var(--text)' }}>
-                      <span style={{ color: selectedCat.color, fontWeight: 700, flexShrink: 0 }}>Q{i+1}.</span>
-                      <span>{q}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <button 
+                className="btn-primary" 
+                onClick={() => setStep(2)} 
+                style={{ background: `linear-gradient(135deg, ${selectedCat.color}, ${selectedCat.color}cc)`, boxShadow: `0 4px 14px ${selectedCat.color}40`, padding: '0.65rem 1.5rem', fontSize: '0.95rem' }}
+              >
+                Proceed to Notice Upload <ArrowRight size={16} weight="bold" />
+              </button>
             </div>
           )}
         </div>
       )}
 
-      {/* ════════════ STEP 2: Intake Form ════════════ */}
-      {step === 2 && selectedCat && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1.5rem', alignItems: 'start' }}>
-          {/* Left: Form */}
-          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '16px', padding: '1.75rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.75rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border)' }}>
-              <div style={{ width: 4, height: 24, borderRadius: '99px', background: selectedCat.color }} />
-              <div>
-                <div style={{ fontWeight: 800, fontSize: '1rem' }}>{selectedCat.title}</div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-soft)' }}>{selectedCat.sections}</div>
+      {/* ════════════ STEP 2: UPLOAD NOTICE ════════════ */}
+      {step === 2 && (
+        <div style={{ maxWidth: '700px', margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+            <div style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: '0.3rem' }}>Upload the GST Notice</div>
+            <p style={{ color: 'var(--text-soft)', fontSize: '0.9rem' }}>
+              Upload a scan, photo, or PDF of the notice. MARKUP.AI will use OCR + AI to extract all details automatically.
+            </p>
+          </div>
+
+          {/* Category indicator */}
+          {selectedCat && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.5rem', padding: '0.75rem 1rem', background: `${selectedCat.color}10`, border: `1px solid ${selectedCat.color}30`, borderRadius: '10px' }}>
+              <div style={{ width: 4, height: 24, background: selectedCat.color, borderRadius: '99px' }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{selectedCat.title}</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-soft)' }}>{selectedCat.sections}</div>
               </div>
-              <button onClick={() => setStep(1)} style={{ marginLeft: 'auto', background: 'none', border: '1px solid var(--border)', borderRadius: '6px', padding: '0.3rem 0.6rem', cursor: 'pointer', fontSize: '0.78rem', color: 'var(--text-soft)' }}>← Back</button>
+              <button onClick={() => setStep(1)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '6px', padding: '0.25rem 0.5rem', fontSize: '0.72rem', color: 'var(--text-soft)', cursor: 'pointer' }}>Change</button>
             </div>
+          )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              {visibleFields.map(field => (
-                <div key={field.id} style={{ gridColumn: (field.type === 'textarea' || ['legal_name', 'department_allegation', 'client_explanation', 'documents_available', 'returns_filed', 'payment_made', 'relief_sought', 'special_instructions'].includes(field.id)) ? '1 / -1' : 'span 1' }}>
-                  <FormField field={field} value={formData[field.id] || ''} onChange={updateField} />
-                </div>
-              ))}
+          {/* Upload Area */}
+          {!isExtracting && !noticeFile && (
+            <div style={{
+              border: '2px dashed var(--border)', borderRadius: '18px', padding: '3.5rem 2rem',
+              textAlign: 'center', cursor: 'pointer', transition: 'all 0.25s',
+              background: 'var(--bg-elevated)'
+            }}
+              onClick={() => noticeInputRef.current?.click()}
+              onMouseOver={e => { e.currentTarget.style.borderColor = '#6366F1'; e.currentTarget.style.background = 'rgba(99,102,241,0.04)'; }}
+              onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--bg-elevated)'; }}
+            >
+              <CloudArrowUp size={56} color="#6366F1" style={{ marginBottom: '1rem' }} />
+              <div style={{ fontWeight: 800, fontSize: '1.1rem', marginBottom: '0.3rem' }}>Drop notice file here or click to upload</div>
+              <div style={{ color: 'var(--text-soft)', fontSize: '0.85rem', marginBottom: '0.75rem' }}>Supports: PDF, JPG, PNG, WEBP, BMP, TIFF</div>
+              <div style={{ display: 'inline-flex', gap: '0.4rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                {['📄 PDF', '🖼️ Images', '📸 Photos', '📋 Scans'].map(t => (
+                  <span key={t} style={{ padding: '0.2rem 0.6rem', borderRadius: '99px', fontSize: '0.72rem', background: 'var(--bg)', border: '1px solid var(--border)' }}>{t}</span>
+                ))}
+              </div>
             </div>
+          )}
 
-            <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-              <button className="btn-secondary" onClick={resetFlow}>Cancel</button>
-              <button className="btn-primary" onClick={generateDraft} style={{ background: `linear-gradient(135deg, ${selectedCat.color}, ${selectedCat.color}cc)`, boxShadow: `0 4px 14px ${selectedCat.color}40` }}>
-                <FilePlus size={16} /> Generate Draft Reply
-              </button>
-            </div>
-          </div>
+          <input ref={noticeInputRef} type="file" style={{ display: 'none' }} accept=".pdf,.jpg,.jpeg,.png,.webp,.bmp,.tiff,.tif,.gif" onChange={handleNoticeUpload} />
 
-          {/* Right: Sidebar Helper */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', position: 'sticky', top: '1rem' }}>
-            <div style={{ background: 'var(--bg-surface)', border: `1px solid ${selectedCat.color}50`, borderRadius: '14px', padding: '1.25rem' }}>
-              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: selectedCat.color, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.75rem' }}>📋 Clarifying Questions</div>
-              {selectedCat.clarification_questions.map((q, i) => (
-                <div key={i} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.6rem', fontSize: '0.82rem', alignItems: 'flex-start' }}>
-                  <span style={{ color: selectedCat.color, fontWeight: 700, flexShrink: 0, marginTop: '1px' }}>Q{i+1}.</span>
-                  <span style={{ color: 'var(--text)', lineHeight: '1.45' }}>{q}</span>
-                </div>
-              ))}
+          {/* Extracting state */}
+          {isExtracting && (
+            <div style={{
+              border: '2px solid #6366F1', borderRadius: '18px', padding: '3rem',
+              textAlign: 'center', background: 'rgba(99,102,241,0.05)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                <div style={{ width: 50, height: 50, border: '3px solid var(--border)', borderTopColor: '#6366F1', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              </div>
+              <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#6366F1', marginBottom: '0.5rem' }}>🔍 AI is reading your notice...</div>
+              <div style={{ color: 'var(--text-soft)', fontSize: '0.88rem', lineHeight: '1.6' }}>
+                Processing: <strong>{noticeFile?.name}</strong><br />
+                Extracting GSTIN, dates, amounts, allegations, jurisdiction...
+              </div>
+              <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                {['OCR Scan', 'Data Parse', 'Structure'].map((s, i) => (
+                  <span key={s} style={{
+                    padding: '0.3rem 0.8rem', borderRadius: '99px', fontSize: '0.72rem', fontWeight: 600,
+                    background: i === 0 ? '#6366F1' : 'var(--bg)', color: i === 0 ? '#fff' : 'var(--text-soft)',
+                    border: '1px solid var(--border)', animation: i === 0 ? 'pulse 1.5s infinite' : 'none'
+                  }}>{s}</span>
+                ))}
+              </div>
             </div>
+          )}
 
-            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '14px', padding: '1.25rem' }}>
-              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-soft)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.75rem' }}>✅ Review Checklist</div>
-              {selectedCat.review_checklist.map((item, i) => (
-                <div key={i} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', fontSize: '0.82rem', alignItems: 'flex-start' }}>
-                  <span style={{ color: '#10B981', flexShrink: 0, marginTop: '1px' }}>✓</span>
-                  <span style={{ color: 'var(--text)', lineHeight: '1.4' }}>{item}</span>
-                </div>
-              ))}
+          {/* File uploaded but error */}
+          {noticeFile && !isExtracting && extractError && (
+            <div style={{ border: '1px solid #EF444440', borderRadius: '14px', padding: '1.5rem', background: 'rgba(239,68,68,0.06)', textAlign: 'center' }}>
+              <Warning size={32} color="#EF4444" style={{ marginBottom: '0.75rem' }} />
+              <div style={{ fontWeight: 700, color: '#EF4444', marginBottom: '0.3rem' }}>Extraction Failed</div>
+              <div style={{ color: 'var(--text-soft)', fontSize: '0.88rem', marginBottom: '1rem' }}>{extractError}</div>
+              <button className="btn-primary" onClick={() => { setNoticeFile(null); setExtractError(''); }}>Try Again</button>
             </div>
+          )}
 
-            <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '14px', padding: '1rem', fontSize: '0.78rem', color: 'var(--text-soft)', lineHeight: '1.6' }}>
-              <div style={{ fontWeight: 700, color: '#6366F1', marginBottom: '0.4rem' }}>📜 Global Drafting Rules</div>
-              {PROMPT_LIBRARY.global_rules.slice(0, 5).map((r, i) => <div key={i}>• {r}</div>)}
+          {/* File uploaded successfully — re-upload option */}
+          {noticeFile && !isExtracting && extractedData && (
+            <div style={{ border: '1px solid #10B98140', borderRadius: '14px', padding: '1.25rem', background: 'rgba(16,185,129,0.06)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <CheckCircle size={28} color="#10B981" />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, color: '#10B981' }}>Notice Extracted Successfully</div>
+                <div style={{ fontSize: '0.82rem', color: 'var(--text-soft)' }}>{noticeFile.name} — proceed to review extracted data</div>
+              </div>
+              <button className="btn-primary" onClick={() => setStep(3)}>Review Data <ArrowRight size={14} /></button>
             </div>
-          </div>
+          )}
         </div>
       )}
 
-      {/* ════════════ STEP 3: Generated Draft ════════════ */}
-      {step === 3 && generatedDraft && (
-        <div>
-          <div style={{ background: 'var(--bg-surface)', border: `1px solid ${selectedCat?.color || 'var(--border)'}`, borderRadius: '16px', overflow: 'hidden' }}>
-            {/* Draft header */}
-            <div style={{ background: `linear-gradient(135deg, ${selectedCat?.color || '#6366F1'}15, transparent)`, padding: '1.25rem 1.75rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+      {/* ════════════ STEP 3: REVIEW EXTRACTED DATA + AI BRIEF ════════════ */}
+      {step === 3 && extractedData && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', alignItems: 'start' }}>
+          {/* Left: Extracted Data */}
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden' }}>
+            <div style={{ background: `linear-gradient(135deg, ${selectedCat?.color || '#6366F1'}15, transparent)`, padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ fontWeight: 800, fontSize: '1.05rem' }}>📄 {selectedCat?.title || 'Draft'}</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-soft)', marginTop: '0.2rem' }}>
-                  {formData.legal_name || '[Client]'} · {formData.notice_reference_number || '[Notice Ref]'} · {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                </div>
+                <div style={{ fontWeight: 800, fontSize: '1rem' }}>📋 Extracted Notice Details</div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-soft)', marginTop: '0.15rem' }}>AI-extracted via OCR — verify all fields</div>
               </div>
-              <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
-                <button className="btn-secondary" onClick={() => setStep(2)} style={{ fontSize: '0.82rem', padding: '0.4rem 0.8rem' }}>← Edit</button>
-                <button className="btn-secondary" onClick={copyDraft} style={{ fontSize: '0.82rem', padding: '0.4rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Copy size={14} /> Copy</button>
-                <button className="btn-secondary" onClick={printDraft} style={{ fontSize: '0.82rem', padding: '0.4rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Printer size={14} /> Print / PDF</button>
-                <button className="btn-primary" onClick={resetFlow} style={{ fontSize: '0.82rem', padding: '0.4rem 0.8rem' }}><FilePlus size={14} /> New Draft</button>
-              </div>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '99px', background: RISK_BADGE[extractedData.risk_level]?.bg || '#6366F120', color: RISK_COLORS[extractedData.risk_level] || '#6366F1', border: `1px solid ${RISK_BADGE[extractedData.risk_level]?.border || '#6366F140'}` }}>
+                {RISK_LABELS[extractedData.risk_level] || '🔵 Medium'}
+              </span>
             </div>
 
-            {/* Review checklist banner */}
-            {selectedCat?.review_checklist && (
-              <div style={{ background: 'rgba(16,185,129,0.06)', borderBottom: '1px solid rgba(16,185,129,0.2)', padding: '0.75rem 1.75rem', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#10B981', textTransform: 'uppercase', letterSpacing: '0.05em' }}>✅ Review Checklist:</span>
-                {selectedCat.review_checklist.map((item, i) => (
-                  <span key={i} style={{ fontSize: '0.75rem', color: 'var(--text-soft)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <CheckCircle size={11} color="#10B981" /> {item}
-                  </span>
+            <div style={{ padding: '1.25rem 1.5rem' }}>
+              {/* Key fields */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem', marginBottom: '1.25rem' }}>
+                <DataField label="Notice Type" value={extractedData.notice_type} color={selectedCat?.color} />
+                <DataField label="Form" value={extractedData.form} color={selectedCat?.color} />
+                <DataField label="Section" value={extractedData.section} />
+                <DataField label="Rule" value={extractedData.rule} />
+                <DataField label="GSTIN" value={extractedData.gstin} color="#3B82F6" />
+                <DataField label="Legal Name" value={extractedData.legal_name} />
+                <DataField label="Notice Ref No." value={extractedData.notice_reference_number} />
+                <DataField label="DIN Reference" value={extractedData.din_reference} />
+                <DataField label="Date of Notice" value={extractedData.date_of_notice} />
+                <DataField label="Reply Due Date" value={extractedData.reply_due_date} color="#EF4444" />
+                <DataField label="Tax Period" value={extractedData.tax_period} />
+                <DataField label="Financial Year" value={extractedData.financial_year} />
+              </div>
+
+              {/* Demand Section */}
+              {(extractedData.tax_amount || extractedData.total_demand) && (
+                <div style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '10px', padding: '1rem', marginBottom: '1rem' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#EF4444', textTransform: 'uppercase', marginBottom: '0.5rem' }}>💰 Demand Breakup</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                    <DataField label="Tax" value={extractedData.tax_amount} color="#EF4444" />
+                    <DataField label="Interest" value={extractedData.interest_amount} color="#F59E0B" />
+                    <DataField label="Penalty" value={extractedData.penalty_amount} color="#EF4444" />
+                    <DataField label="Total Demand" value={extractedData.total_demand} color="#DC2626" />
+                  </div>
+                </div>
+              )}
+
+              {/* Allegations */}
+              {extractedData.allegations && (
+                <div style={{ marginBottom: '1rem' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-soft)', textTransform: 'uppercase', marginBottom: '0.4rem' }}>⚠️ Department Allegations</div>
+                  <div style={{ padding: '0.75rem', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '0.85rem', lineHeight: '1.6' }}>{extractedData.allegations}</div>
+                </div>
+              )}
+
+              {/* Key Issues */}
+              {extractedData.key_issues?.length > 0 && (
+                <div style={{ marginBottom: '1rem' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-soft)', textTransform: 'uppercase', marginBottom: '0.4rem' }}>🔍 Key Issues</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                    {extractedData.key_issues.map((issue, i) => (
+                      <div key={i} style={{ display: 'flex', gap: '0.5rem', fontSize: '0.83rem', padding: '0.4rem 0.6rem', background: 'var(--bg)', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                        <span style={{ color: '#EF4444', fontWeight: 700, flexShrink: 0 }}>#{i + 1}</span>
+                        <span>{issue}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Hearing */}
+              {extractedData.hearing_date && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem', marginBottom: '1rem' }}>
+                  <DataField label="Hearing Date" value={extractedData.hearing_date} color="#F59E0B" />
+                  <DataField label="Hearing Time" value={extractedData.hearing_time} />
+                  <DataField label="Venue" value={extractedData.hearing_venue} />
+                </div>
+              )}
+
+              <DataField label="Jurisdiction / Officer" value={extractedData.jurisdiction || extractedData.proper_officer_name} />
+            </div>
+
+            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button className="btn-secondary" onClick={() => setStep(2)}>← Re-upload</button>
+              <button className="btn-primary" onClick={() => setStep(4)}>Proceed to Documents <ArrowRight size={14} /></button>
+            </div>
+          </div>
+
+          {/* Right: AI Brief */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', position: 'sticky', top: '1rem' }}>
+            {/* Generate Brief Button */}
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '16px', padding: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
+                <MagicWand size={20} color="#6366F1" />
+                <div style={{ fontWeight: 800, fontSize: '1rem' }}>AI Case Brief</div>
+              </div>
+
+              {!aiBrief && !isBriefing && (
+                <div>
+                  <p style={{ color: 'var(--text-soft)', fontSize: '0.85rem', marginBottom: '1rem', lineHeight: '1.5' }}>
+                    Let MARKUP.AI analyse the extracted notice data and generate a comprehensive brief covering risk assessment, deadlines, action items, and legal strategy.
+                  </p>
+                  <button className="btn-primary" onClick={generateBrief} style={{ width: '100%' }}>
+                    <MagicWand size={16} /> Generate AI Brief
+                  </button>
+                </div>
+              )}
+
+              {isBriefing && (
+                <div style={{ textAlign: 'center', padding: '2rem' }}>
+                  <div style={{ width: 36, height: 36, border: '3px solid var(--border)', borderTopColor: '#6366F1', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 1rem' }} />
+                  <div style={{ fontWeight: 600, color: '#6366F1' }}>Analysing notice & preparing brief...</div>
+                </div>
+              )}
+
+              {aiBrief && !isBriefing && (
+                <div>
+                  <div style={{ maxHeight: '60vh', overflowY: 'auto', fontSize: '0.88rem', lineHeight: '1.7' }} dangerouslySetInnerHTML={{ __html: formatText(aiBrief) }} />
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                    <button className="btn-secondary" onClick={() => copyText(aiBrief)} style={{ flex: 1, fontSize: '0.82rem' }}><Copy size={14} /> Copy</button>
+                    <button className="btn-secondary" onClick={generateBrief} style={{ flex: 1, fontSize: '0.82rem' }}><ArrowRight size={14} /> Regenerate</button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Documents Demanded */}
+            {extractedData.documents_demanded?.length > 0 && (
+              <div style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: '14px', padding: '1.25rem' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#F59E0B', textTransform: 'uppercase', marginBottom: '0.6rem' }}>📄 Documents Demanded by Officer</div>
+                {extractedData.documents_demanded.map((doc, i) => (
+                  <div key={i} style={{ display: 'flex', gap: '0.5rem', fontSize: '0.82rem', marginBottom: '0.35rem', alignItems: 'flex-start' }}>
+                    <span style={{ color: '#F59E0B', fontWeight: 700, flexShrink: 0 }}>→</span>
+                    <span style={{ lineHeight: '1.4' }}>{doc}</span>
+                  </div>
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
 
-            {/* Draft body */}
-            <div ref={draftRef} style={{
-              padding: '2rem 2.5rem', fontFamily: "'Courier New', Courier, monospace",
-              fontSize: '0.84rem', lineHeight: '1.85', whiteSpace: 'pre-wrap',
-              color: 'var(--text)', maxHeight: '72vh', overflowY: 'auto',
-              background: 'var(--bg)'
-            }}>
-              {generatedDraft}
+      {/* ════════════ STEP 4: SUPPORTING DOCUMENTS ════════════ */}
+      {step === 4 && (
+        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+          <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '16px', padding: '1.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.3rem' }}>
+              <Files size={22} color="#6366F1" />
+              <h2 style={{ fontSize: '1.1rem', fontWeight: 800 }}>Upload Supporting Documents</h2>
+            </div>
+            <p style={{ color: 'var(--text-soft)', fontSize: '0.88rem', marginBottom: '1.5rem' }}>
+              Upload all documents that will support your reply — invoices, returns, challans, reconciliations, bank statements, etc. Add a brief description for each.
+            </p>
+
+            {/* Docs demanded reminder */}
+            {extractedData?.documents_demanded?.length > 0 && (
+              <div style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: '10px', padding: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#F59E0B', marginBottom: '0.5rem' }}>📋 Documents Demanded in Notice (ensure these are uploaded):</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                  {extractedData.documents_demanded.map((d, i) => (
+                    <span key={i} style={{ padding: '0.2rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', color: '#B45309' }}>{d}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Upload button area */}
+            <div style={{
+              border: '2px dashed var(--border)', borderRadius: '14px', padding: '2rem',
+              textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s', marginBottom: '1.5rem'
+            }}
+              onClick={() => docInputRef.current?.click()}
+              onMouseOver={e => { e.currentTarget.style.borderColor = '#6366F1'; }}
+              onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}
+            >
+              <UploadSimple size={36} color="#6366F1" style={{ marginBottom: '0.5rem' }} />
+              <div style={{ fontWeight: 700, marginBottom: '0.2rem' }}>Click to upload supporting documents</div>
+              <div style={{ color: 'var(--text-soft)', fontSize: '0.82rem' }}>PDF, DOCX, XLSX, Images — multiple files allowed</div>
+            </div>
+            <input ref={docInputRef} type="file" multiple style={{ display: 'none' }} accept=".pdf,.jpg,.jpeg,.png,.docx,.doc,.xlsx,.xls,.csv,.json,.webp,.tiff" onChange={handleDocUpload} />
+
+            {/* Uploaded docs list */}
+            {supportingDocs.length > 0 && (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-soft)', textTransform: 'uppercase', marginBottom: '0.6rem' }}>
+                  Uploaded Documents ({supportingDocs.length})
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                  {supportingDocs.map((doc, i) => (
+                    <div key={i} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', padding: '0.75rem 1rem', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '10px' }}>
+                      <FileText size={20} color="#6366F1" style={{ flexShrink: 0 }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>{doc.name}</div>
+                        <input
+                          type="text"
+                          placeholder="Add a description (e.g. GSTR-3B for Apr-Jun 2024)"
+                          value={doc.description}
+                          onChange={e => updateDocDescription(i, e.target.value)}
+                          style={{ width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', padding: '0.35rem 0.6rem', fontSize: '0.8rem', color: 'var(--text)', marginTop: '0.35rem' }}
+                        />
+                      </div>
+                      <button onClick={() => removeDoc(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-soft)', padding: '0.3rem' }}><X size={16} /></button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Special instructions */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-soft)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.4rem' }}>
+                <PencilSimple size={13} /> Special Instructions to AI Drafter
+              </label>
+              <textarea
+                value={specialInstructions}
+                onChange={e => setSpecialInstructions(e.target.value)}
+                placeholder="E.g. Focus on natural justice argument, emphasize that vendor has filed returns now, mention HC ruling in XYZ case..."
+                rows={3}
+                style={{ width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '10px', padding: '0.75rem 1rem', fontSize: '0.88rem', color: 'var(--text)', resize: 'vertical', fontFamily: 'inherit' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button className="btn-secondary" onClick={() => setStep(3)}>← Back to Review</button>
+              <button className="btn-primary" onClick={() => { setStep(5); generateDraft(); }} style={{ minWidth: '220px' }}>
+                <MagicWand size={16} /> Generate AI Draft
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ════════════ Saved Drafts ════════════ */}
-      {savedDrafts.length > 0 && (
+      {/* ════════════ STEP 5: GENERATED DRAFT ════════════ */}
+      {step === 5 && (
+        <div>
+          {isGenerating ? (
+            <div style={{ maxWidth: '600px', margin: '0 auto', textAlign: 'center', padding: '4rem 2rem' }}>
+              <div style={{ width: 60, height: 60, border: '4px solid var(--border)', borderTopColor: '#6366F1', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 2rem' }} />
+              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#6366F1', marginBottom: '0.5rem' }}>✍️ MARKUP.AI is drafting your reply...</div>
+              <div style={{ color: 'var(--text-soft)', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '2rem' }}>
+                Analysing notice details, supporting documents, and legal precedents to generate a unique, department-ready reply draft.
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                {['Reading Notice', 'Analysing Law', 'Checking Precedents', 'Building Arguments', 'Drafting Reply'].map((s, i) => (
+                  <span key={s} style={{ padding: '0.35rem 0.9rem', borderRadius: '99px', fontSize: '0.78rem', fontWeight: 600, background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-soft)' }}>{s}</span>
+                ))}
+              </div>
+            </div>
+          ) : generatedDraft ? (
+            <div style={{ background: 'var(--bg-surface)', border: `2px solid ${selectedCat?.color || '#6366F1'}40`, borderRadius: '18px', overflow: 'hidden' }}>
+              {/* Draft Header */}
+              <div style={{ background: `linear-gradient(135deg, ${selectedCat?.color || '#6366F1'}12, transparent)`, padding: '1.25rem 1.75rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div>
+                  <div style={{ fontWeight: 900, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <ShieldCheck size={22} color={selectedCat?.color || '#6366F1'} />
+                    Department-Ready Reply Draft
+                  </div>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-soft)', marginTop: '0.2rem' }}>
+                    {extractedData?.legal_name || 'Client'} · {extractedData?.notice_reference_number || 'Notice'} · Generated {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <button className="btn-secondary" onClick={() => setStep(4)} style={{ fontSize: '0.82rem', padding: '0.4rem 0.8rem' }}>← Edit</button>
+                  <button className="btn-secondary" onClick={() => copyText(generatedDraft)} style={{ fontSize: '0.82rem', padding: '0.4rem 0.8rem' }}><Copy size={14} /> Copy</button>
+                  <button className="btn-secondary" onClick={() => printDraft(generatedDraft)} style={{ fontSize: '0.82rem', padding: '0.4rem 0.8rem' }}><Printer size={14} /> Print / PDF</button>
+                  <button className="btn-secondary" onClick={() => { setGeneratedDraft(''); generateDraft(); }} style={{ fontSize: '0.82rem', padding: '0.4rem 0.8rem' }}><MagicWand size={14} /> Regenerate</button>
+                  <button className="btn-primary" onClick={resetAll} style={{ fontSize: '0.82rem', padding: '0.4rem 0.8rem' }}><FilePlus size={14} /> New Draft</button>
+                </div>
+              </div>
+
+              {/* Draft Body */}
+              <div style={{
+                padding: '2rem 2.5rem', maxHeight: '70vh', overflowY: 'auto',
+                fontSize: '0.88rem', lineHeight: '1.85', background: 'var(--bg)'
+              }} dangerouslySetInnerHTML={{ __html: formatText(generatedDraft) }} />
+            </div>
+          ) : null}
+        </div>
+      )}
+
+      {/* ════════════ SAVED DRAFTS ════════════ */}
+      {savedDrafts.length > 0 && step !== 5 && (
         <div style={{ marginTop: '2.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h2 style={{ fontSize: '1rem', fontWeight: 700 }}>Saved Drafts <span style={{ background: '#6366F1', color: '#fff', borderRadius: '99px', padding: '0.1rem 0.5rem', fontSize: '0.72rem' }}>{savedDrafts.length}</span></h2>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1rem' }}>
+          <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem' }}>
+            Saved Drafts <span style={{ background: '#6366F1', color: '#fff', borderRadius: '99px', padding: '0.1rem 0.5rem', fontSize: '0.72rem' }}>{savedDrafts.length}</span>
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1rem' }}>
             {savedDrafts.map(d => (
-              <div key={d.id} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
+              <div key={d.id} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden', transition: 'box-shadow 0.2s' }}
+                onMouseOver={e => e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.1)'}
+                onMouseOut={e => e.currentTarget.style.boxShadow = 'none'}>
                 <div style={{ height: '3px', background: d.color }} />
-                <div style={{ padding: '1.1rem 1.25rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                <div style={{ padding: '1rem 1.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
-                      <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '0.12rem 0.45rem', borderRadius: '99px', background: `${RISK_COLORS[d.risk]}18`, color: RISK_COLORS[d.risk], border: `1px solid ${RISK_COLORS[d.risk]}30` }}>{RISK_LABELS[d.risk]}</span>
-                      <div style={{ fontWeight: 700, fontSize: '0.9rem', marginTop: '0.35rem' }}>{d.title}</div>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: '99px', background: RISK_BADGE[d.risk]?.bg, color: RISK_COLORS[d.risk], border: `1px solid ${RISK_BADGE[d.risk]?.border}` }}>{RISK_LABELS[d.risk]}</span>
+                      <div style={{ fontWeight: 700, fontSize: '0.88rem', marginTop: '0.3rem' }}>{d.title}</div>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.35rem' }}>
-                      <button className="icon-btn-sm" onClick={() => { setGeneratedDraft(d.text); setSelectedCat(PROMPT_LIBRARY.categories.find(c => c.title === d.title)); setStep(3); }}>👁</button>
-                      <button className="icon-btn-sm" onClick={() => { navigator.clipboard.writeText(d.text); alert('Copied!'); }}><Copy size={13} /></button>
+                    <div style={{ display: 'flex', gap: '0.3rem' }}>
+                      <button className="icon-btn-sm" onClick={() => { setGeneratedDraft(d.text); setStep(5); setSelectedCat(PROMPT_LIBRARY.categories.find(c => c.title === d.title)); }}><Eye size={13} /></button>
+                      <button className="icon-btn-sm" onClick={() => copyText(d.text)}><Copy size={13} /></button>
                       <button className="icon-btn-sm" onClick={() => setSavedDrafts(prev => prev.filter(x => x.id !== d.id))} style={{ color: '#ef4444' }}><X size={13} /></button>
                     </div>
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-soft)', display: 'flex', gap: '1rem' }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-soft)', marginTop: '0.3rem', display: 'flex', gap: '0.75rem' }}>
                     <span>👤 {d.client}</span>
                     <span>📄 {d.notice_ref}</span>
                     <span>📅 {d.date}</span>
@@ -359,6 +717,12 @@ export default function LegalPage() {
           </div>
         </div>
       )}
+
+      {/* Spinner keyframe */}
+      <style jsx>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+      `}</style>
     </section>
   );
 }

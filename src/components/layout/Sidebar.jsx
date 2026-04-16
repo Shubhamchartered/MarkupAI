@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { 
   Brain, SquaresFour, UsersThree, 
   CaretDown, UserList, WarningOctagon, Scales, 
-  ChatCircleDots, Export, Gear, SparkleIcon
+  ChatCircleDots
 } from '@phosphor-icons/react';
 
 // Brand logo using text instead of Receipt icon for new branding
@@ -84,26 +84,7 @@ export default function Sidebar() {
           </div>
         </div>
 
-        <div className="nav-section-label" style={{ marginTop: '1.5rem' }}>SYSTEM</div>
-        <a href="#" className="nav-link">
-          <Export />
-          <span>Export Data</span>
-        </a>
-        <a href="#" className="nav-link">
-          <Gear />
-          <span>Settings</span>
-        </a>
       </nav>
-
-      <div className="sidebar-footer">
-        <div className="sidebar-user">
-          <img src="https://ui-avatars.com/api/?name=CA+Admin&background=4f46e5&color=fff&size=40" alt="Admin" />
-          <div>
-            <div className="su-name">CA Admin</div>
-            <div className="su-role">Tax Professional</div>
-          </div>
-        </div>
-      </div>
     </aside>
   );
 }

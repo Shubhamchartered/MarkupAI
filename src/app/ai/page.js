@@ -116,7 +116,7 @@ export default function AIPage() {
           <div className="ai-vh-icon"><Brain size={24} weight="fill" /></div>
           <div>
             <div className="ai-vh-title">MARKUP.AI — GST Intelligence Engine</div>
-            <div className="ai-vh-sub">Powered by Google Gemini · RESEARCH · DRAFTING · CASE LAW · ANALYSIS</div>
+            <div className="ai-vh-sub">RESEARCH · DRAFTING · CASE LAW · ANALYSIS</div>
           </div>
         </div>
         <div className="ai-vh-right">
@@ -154,7 +154,7 @@ export default function AIPage() {
                   <div style={{ fontSize: '1.15rem', color: 'var(--text-soft)', fontWeight: 500 }}>Your AI GST Expert — Draft · Research · Analyse</div>
                   <div style={{ width: 60, height: 3, background: 'linear-gradient(90deg,#6366F1,#8B5CF6)', margin: '1rem auto', borderRadius: '99px' }} />
                   <div style={{ fontSize: '0.85rem', color: 'var(--text-soft)', maxWidth: '500px', margin: '0 auto', lineHeight: '1.6' }}>
-                    Ask any question about GST law, draft notice replies, analyse ITC mismatches, or get legal strategy advice. Powered by Google Gemini AI.
+                    Ask any question about GST law, draft notice replies, analyse ITC mismatches, or get legal strategy advice.
                   </div>
                 </div>
 
@@ -329,7 +329,7 @@ export default function AIPage() {
               </button>
             </div>
             <div style={{ textAlign: 'center', marginTop: '0.5rem', fontSize: '0.72rem', color: 'var(--text-soft)' }}>
-              MARKUP.AI may produce inaccurate information. Always verify legal advice with a qualified professional.
+              Disclaimer: MARKUP.AI may produce data available in his database or facts available which can be non-conclusive or inaccurate. Legal advice of professional to be seek of advice generated.
             </div>
           </div>
         </div>

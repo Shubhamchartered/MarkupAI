@@ -75,24 +75,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="login-import-section">
-          <div className="separator"><span>OR</span></div>
-          <div className="import-box">
-            <FileXls size={32} color="var(--success-color)" />
-            <div className="import-text">
-              <strong>Import Client Details</strong>
-              <span>Upload XLSX to sync with platform</span>
-            </div>
-            <button className="btn-secondary" onClick={() => document.getElementById('login-import').click()}>
-              Browse
-            </button>
-            <input type="file" id="login-import" accept=".xlsx,.xls" style={{display: 'none'}} onChange={(e) => {
-              if (e.target.files.length > 0) {
-                 alert("Clients imported successfully! You can now sign in.");
-              }
-            }} />
-          </div>
-        </div>
+
       </div>
       <style jsx>{`
         .login-container {

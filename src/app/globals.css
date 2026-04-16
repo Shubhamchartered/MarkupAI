@@ -66,7 +66,7 @@
 
 /* ── Reset ───────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { font-size: 16px; }
+html { font-size: 14px; }
 body {
   font-family: 'Inter', sans-serif;
   background: var(--bg);
@@ -387,12 +387,12 @@ ul { list-style: none; }
   gap: 1rem;
 }
 .page-header h1 {
-  font-size: 1.65rem;
+  font-size: 1.5rem;
   font-weight: 800;
   letter-spacing: -.02em;
 }
 .page-header p {
-  font-size: .9rem;
+  font-size: .92rem;
   color: var(--text-muted);
   margin-top: .25rem;
 }
@@ -599,17 +599,17 @@ ul { list-style: none; }
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: .875rem;
+  font-size: .92rem;
 }
 
 th {
   background: var(--bg-elevated);
   color: var(--text-muted);
   font-weight: 600;
-  font-size: .75rem;
+  font-size: .78rem;
   text-transform: uppercase;
   letter-spacing: .06em;
-  padding: .85rem 1.1rem;
+  padding: .75rem 1rem;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
   user-select: none;
@@ -619,7 +619,7 @@ th.sortable:hover { color: var(--indigo-500); }
 th.th-num { width: 50px; text-align: center; }
 
 td {
-  padding: .9rem 1.1rem;
+  padding: .7rem 1rem;
   border-bottom: 1px solid var(--border);
   color: var(--text);
   vertical-align: middle;

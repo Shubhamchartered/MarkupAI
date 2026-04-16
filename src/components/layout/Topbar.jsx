@@ -4,6 +4,7 @@ import { List, MagnifyingGlass, Sun, Moon, Bell, CaretDown, Buildings, SignOut }
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { searchClients } from '@/lib/notice_sync';
 
 export default function Topbar({ toggleSidebar }) {
   const [theme, setTheme] = useState('dark');
@@ -11,7 +12,11 @@ export default function Topbar({ toggleSidebar }) {
   const [showFirmModal, setShowFirmModal] = useState(false);
   const [firmName, setFirmName] = useState('CA Shubham & Associates');
   const [firmGSTN, setFirmGSTN] = useState('27AADCA1234F1Z9');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
   const menuRef = useRef(null);
+  const searchRef = useRef(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -23,10 +28,31 @@ export default function Topbar({ toggleSidebar }) {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
         setUserMenuOpen(false);
       }
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setShowSearchResults(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Live search against CLIENT_DATA
+  useEffect(() => {
+    if (searchQuery.trim().length >= 2) {
+      const results = searchClients(searchQuery, 8);
+      setSearchResults(results);
+      setShowSearchResults(true);
+    } else {
+      setSearchResults([]);
+      setShowSearchResults(false);
+    }
+  }, [searchQuery]);
+
+  const handleSelectResult = (client) => {
+    setShowSearchResults(false);
+    setSearchQuery('');
+    router.push(`/clients?q=${encodeURIComponent(client.userName)}`);
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('markup_auth');
@@ -39,10 +65,86 @@ export default function Topbar({ toggleSidebar }) {
         <List />
       </button>
 
-      <div className="search-wrap">
+      <div className="search-wrap" ref={searchRef} style={{ position: 'relative' }}>
         <MagnifyingGlass />
-        <input type="text" id="globalSearch" placeholder="Search clients, User ID, GSTN…" autoComplete="off" />
+        <input
+          type="text"
+          id="globalSearch"
+          placeholder="Search clients, User ID, GSTN…"
+          autoComplete="off"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          onFocus={() => { if (searchResults.length > 0) setShowSearchResults(true); }}
+        />
         <kbd>⌘K</kbd>
+
+        {/* Search Results Dropdown */}
+        {showSearchResults && searchResults.length > 0 && (
+          <div style={{
+            position: 'absolute', top: 'calc(100% + 0.5rem)', left: 0, right: 0,
+            background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+            borderRadius: '12px', boxShadow: '0 12px 40px rgba(0,0,0,0.35)',
+            zIndex: 9999, maxHeight: '380px', overflowY: 'auto',
+          }}>
+            <div style={{ padding: '0.5rem 1rem 0.3rem', fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-soft)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              {searchResults.length} result{searchResults.length > 1 ? 's' : ''} found
+            </div>
+            {searchResults.map((c, i) => (
+              <button
+                key={c.userId || i}
+                onClick={() => handleSelectResult(c)}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem',
+                  padding: '0.7rem 1rem', background: 'none', border: 'none',
+                  cursor: 'pointer', color: 'var(--text)', textAlign: 'left',
+                  borderTop: i === 0 ? 'none' : '1px solid var(--border)',
+                  transition: 'background 0.15s',
+                }}
+                onMouseOver={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                onMouseOut={e => e.currentTarget.style.background = 'none'}
+              >
+                <div style={{
+                  width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
+                  background: 'linear-gradient(135deg, #6366F1, #4F46E5)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#fff', fontSize: '0.7rem', fontWeight: 800
+                }}>
+                  {(c.userName || '??').substring(0, 2).toUpperCase()}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {c.userName}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-soft)', display: 'flex', gap: '0.75rem' }}>
+                    <span>{c.userId}</span>
+                    <span style={{ fontFamily: 'monospace' }}>{c.gstn}</span>
+                  </div>
+                </div>
+                {c.noticeCount > 0 && (
+                  <span style={{
+                    padding: '0.1rem 0.45rem', borderRadius: '99px', fontSize: '0.68rem',
+                    fontWeight: 700, background: 'rgba(239,68,68,0.12)', color: '#EF4444',
+                    border: '1px solid rgba(239,68,68,0.25)', flexShrink: 0,
+                  }}>
+                    {c.noticeCount} notice{c.noticeCount > 1 ? 's' : ''}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {showSearchResults && searchQuery.trim().length >= 2 && searchResults.length === 0 && (
+          <div style={{
+            position: 'absolute', top: 'calc(100% + 0.5rem)', left: 0, right: 0,
+            background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+            borderRadius: '12px', boxShadow: '0 12px 40px rgba(0,0,0,0.35)',
+            zIndex: 9999, padding: '1.5rem', textAlign: 'center',
+            color: 'var(--text-soft)', fontSize: '0.88rem',
+          }}>
+            No clients found for &ldquo;{searchQuery}&rdquo;
+          </div>
+        )}
       </div>
 
       <div className="topbar-right">

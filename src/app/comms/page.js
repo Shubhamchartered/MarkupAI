@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from 'react';
-import { Eraser, PaperPlaneTilt, WhatsappLogo, EnvelopeSimple, CalendarBlank, CaretLeft, CaretRight, Plus, X, UsersThree } from '@phosphor-icons/react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { Eraser, PaperPlaneTilt, WhatsappLogo, EnvelopeSimple, CalendarBlank, CaretLeft, CaretRight, Plus, X, UsersThree, MagnifyingGlass } from '@phosphor-icons/react';
 import { CommsEngine } from '@/lib/comms_engine';
 import { CLIENT_DATA } from '@/data/client_data';
+import { getNoticesForClient } from '@/lib/notice_sync';
 
 const CustomCalendar = ({ value, onChange }) => {
   const today = new Date();
@@ -77,6 +78,45 @@ export default function CommsPage() {
   const [waOutput, setWaOutput] = useState('');
   const [emailOutput, setEmailOutput] = useState('');
 
+  // Client search dropdown
+  const [clientSearch, setClientSearch] = useState('');
+  const [showClientDropdown, setShowClientDropdown] = useState(false);
+  const [selectedClient, setSelectedClient] = useState(null);
+  const clientDropdownRef = useRef(null);
+
+  const filteredClientList = useMemo(() => {
+    if (!clientSearch || clientSearch.length < 1) return CLIENT_DATA.slice(0, 10);
+    const q = clientSearch.toLowerCase();
+    return CLIENT_DATA.filter(c =>
+      (c.userName || '').toLowerCase().includes(q) ||
+      (c.userId || '').toLowerCase().includes(q) ||
+      (c.gstn || '').toLowerCase().includes(q)
+    ).slice(0, 10);
+  }, [clientSearch]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (clientDropdownRef.current && !clientDropdownRef.current.contains(e.target)) {
+        setShowClientDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelectClient = (c) => {
+    setSelectedClient(c);
+    setClientName(c.userName);
+    setClientSearch(c.userName);
+    setShowClientDropdown(false);
+    // Auto-fill notice reference from synced data
+    const notices = getNoticesForClient(c.gstn);
+    if (notices.length > 0) {
+      setNoticeRef(notices[0].number || notices[0].notice_id || '');
+      if (notices[0].amount) setAmount(String(notices[0].amount));
+    }
+  };
+
   // Bulk WhatsApp reminder state
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [selectedClients, setSelectedClients] = useState([]);
@@ -143,9 +183,46 @@ export default function CommsPage() {
 
             <h3 style={{ marginTop: '1.5rem' }}>Context Data</h3>
             <div className="mf-grid">
-              <div className="mf-group span2">
+              <div className="mf-group span2" ref={clientDropdownRef} style={{ position: 'relative' }}>
                 <label className="mf-label">Client Name</label>
-                <input type="text" className="mf-input" placeholder="e.g. M/s ABC Traders" value={clientName} onChange={e => setClientName(e.target.value)} />
+                <div style={{ position: 'relative' }}>
+                  <MagnifyingGlass size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-soft)' }} />
+                  <input
+                    type="text"
+                    className="mf-input"
+                    placeholder="Search client by name, ID, GSTN…"
+                    value={clientSearch}
+                    onChange={e => { setClientSearch(e.target.value); setClientName(e.target.value); setShowClientDropdown(true); }}
+                    onFocus={() => setShowClientDropdown(true)}
+                    style={{ paddingLeft: '2.25rem' }}
+                  />
+                </div>
+                {showClientDropdown && filteredClientList.length > 0 && (
+                  <div style={{
+                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                    background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                    borderRadius: '10px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                    maxHeight: '220px', overflowY: 'auto', marginTop: '0.25rem',
+                  }}>
+                    {filteredClientList.map((c, i) => (
+                      <button
+                        key={c.userId || i}
+                        onClick={() => handleSelectClient(c)}
+                        style={{
+                          width: '100%', display: 'flex', flexDirection: 'column', gap: '0.1rem',
+                          padding: '0.6rem 0.85rem', background: 'none', border: 'none',
+                          cursor: 'pointer', color: 'var(--text)', textAlign: 'left',
+                          borderBottom: '1px solid var(--border)', transition: 'background 0.15s',
+                        }}
+                        onMouseOver={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                        onMouseOut={e => e.currentTarget.style.background = 'none'}
+                      >
+                        <div style={{ fontWeight: 600, fontSize: '0.82rem' }}>{c.userName}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-soft)' }}>{c.userId} · {c.gstn}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="mf-group span2">
                 <label className="mf-label">Notice Reference</label>

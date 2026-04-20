@@ -6,7 +6,8 @@ import { usePathname } from 'next/navigation';
 import { 
   Brain, SquaresFour, UsersThree, 
   CaretDown, UserList, WarningOctagon, Scales, 
-  ChatCircleDots
+  ChatCircleDots, Buildings, Gavel, MagnifyingGlass,
+  FileText, TreeStructure, ArrowsLeftRight
 } from '@phosphor-icons/react';
 
 // Brand logo using text instead of Receipt icon for new branding
@@ -30,6 +31,9 @@ function MarkupLogo() {
 export default function Sidebar() {
   const pathname = usePathname();
   const [clientOpen, setClientOpen] = useState(true);
+  const [itOpen, setITOpen] = useState(pathname?.startsWith('/income-tax'));
+
+  const isITActive = pathname?.startsWith('/income-tax');
 
   return (
     <aside className="sidebar" id="sidebar">
@@ -51,7 +55,7 @@ export default function Sidebar() {
           <span>GST Dashboard</span>
         </Link>
 
-        {/* Client Group */}
+        {/* Client Group (GST) */}
         <div className={`nav-group ${clientOpen ? 'expanded' : ''}`} id="navGroupClient">
           <button 
             className="nav-link nav-group-toggle" 
@@ -80,6 +84,53 @@ export default function Sidebar() {
             <Link href="/comms" className={`nav-link nav-sub ${pathname === '/comms' ? 'active' : ''}`}>
               <ChatCircleDots />
               <span>Client Alerts</span>
+            </Link>
+          </div>
+        </div>
+
+        {/* ── Income Tax Group ─── */}
+        <div className="nav-section-label" style={{ marginTop: '0.75rem' }}>INCOME TAX</div>
+        
+        <div className={`nav-group ${itOpen ? 'expanded' : ''}`} id="navGroupIT">
+          <button 
+            className={`nav-link nav-group-toggle ${isITActive ? 'group-active' : ''}`}
+            onClick={() => setITOpen(!itOpen)}
+          >
+            <Buildings />
+            <span>TaxGuard AI</span>
+            <span className="nav-badge" style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>IT</span>
+            <CaretDown className={`nav-caret ${itOpen ? 'open' : ''}`} />
+          </button>
+
+          <div className={`nav-submenu ${itOpen ? 'open' : ''}`}>
+            <Link href="/income-tax-dashboard" className={`nav-link nav-sub ${pathname === '/income-tax-dashboard' ? 'active' : ''}`}>
+              <SquaresFour />
+              <span>IT Dashboard</span>
+            </Link>
+            <Link href="/income-tax-dashboard/taxpayers" className={`nav-link nav-sub ${pathname === '/income-tax-dashboard/taxpayers' ? 'active' : ''}`}>
+              <UserList />
+              <span>Taxpayers</span>
+            </Link>
+            <Link href="/income-tax-dashboard/notices" className={`nav-link nav-sub ${pathname === '/income-tax-dashboard/notices' ? 'active' : ''}`}>
+              <WarningOctagon />
+              <span>IT Notices</span>
+              <span className="nav-badge danger">10</span>
+            </Link>
+            <Link href="/income-tax-dashboard/drafting" className={`nav-link nav-sub ${pathname === '/income-tax-dashboard/drafting' ? 'active' : ''}`}>
+              <FileText />
+              <span>IT Drafting</span>
+            </Link>
+            <Link href="/income-tax-dashboard/assessments" className={`nav-link nav-sub ${pathname === '/income-tax-dashboard/assessments' ? 'active' : ''}`}>
+              <Gavel />
+              <span>Assessments</span>
+            </Link>
+            <Link href="/income-tax-dashboard/ai-search" className={`nav-link nav-sub ${pathname === '/income-tax-dashboard/ai-search' ? 'active' : ''}`}>
+              <MagnifyingGlass />
+              <span>AI Legal Search</span>
+            </Link>
+            <Link href="/income-tax-dashboard/cross-act" className={`nav-link nav-sub ${pathname === '/income-tax-dashboard/cross-act' ? 'active' : ''}`}>
+              <ArrowsLeftRight />
+              <span>Cross-Act</span>
             </Link>
           </div>
         </div>

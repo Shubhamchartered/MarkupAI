@@ -42,7 +42,7 @@ export default function SelectModule() {
             <p>Manage ITR filings, assessments, Income Tax notices, and appeals.</p>
           </div>
           <div className="mc-action">
-            <span className="coming-soon">Coming Soon</span>
+            <span className="enter-text" style={{ color: 'var(--success-color, #10b981)' }}>Enter Workspace <ArrowRight /></span>
           </div>
         </div>
 

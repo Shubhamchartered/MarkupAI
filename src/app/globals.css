@@ -2204,3 +2204,106 @@ tr:hover td { background: var(--bg-hover); }
   from { opacity: 0; transform: translateY(-8px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   TAXGUARD AI — Income Tax Module Styles
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Form Groups (used in Taxpayer Add modal, Drafting, etc.) ── */
+.mf-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.mf-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-soft);
+}
+.mf-input {
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+.mf-input:focus {
+  border-color: var(--indigo-500);
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+}
+.mf-input::placeholder {
+  color: var(--text-soft);
+}
+
+/* ── IT-specific card accents ───────────────── */
+.kpi-card .kpi-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* ── IT Dashboard mini-calendar overrides ───── */
+.it-mini-calendar .cal-cell:hover:not(.empty) {
+  background: var(--bg-hover);
+}
+
+/* ── Status pipeline badges ─────────────────── */
+.it-status-step {
+  padding: 0.2rem 0.6rem;
+  border-radius: 99px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+.it-status-step.active {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+}
+.it-status-step.inactive {
+  background: var(--bg-elevated);
+  color: var(--text-soft);
+  border: 1px solid var(--border);
+}
+
+/* ── IT Section badges ──────────────────────── */
+.it-section-badge {
+  font-family: 'Courier New', monospace;
+  font-size: 0.82rem;
+  font-weight: 600;
+  background: rgba(16,185,129,.08);
+  color: #10b981;
+  border: 1px solid rgba(16,185,129,.18);
+  padding: 0.2rem 0.55rem;
+  border-radius: 0.35rem;
+}
+
+/* ── Cross-Act linkage indicators ───────────── */
+.xact-linked {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: rgba(16,185,129,0.15);
+  color: #10b981;
+  font-size: 0.7rem;
+  font-weight: 900;
+  line-height: 18px;
+  text-align: center;
+}
+
+/* ── IT module animation for new page loads ─── */
+.view.active {
+  animation: viewFadeIn 0.25s ease;
+}
+
+/* ── Filter select (IT notice types grouped) ── */
+.filter-select optgroup {
+  font-weight: 700;
+  font-size: 0.82rem;
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { FileText, PaperPlaneRight, ArrowLeft, Spinner, Copy, Brain, CaretDown } from '@phosphor-icons/react';
+import { FileText, Spinner, Copy, Brain } from '@phosphor-icons/react';
 import { IT_NOTICES_DB, IT_NOTICE_TYPES } from '@/data/it_notices_data';
 import { IT_SECTIONS, IT_DRAFTING_GUIDES } from '@/data/it_legal_corpus';
 import { ITDraftingEngine } from '@/lib/it_drafting_engine';
@@ -75,12 +75,12 @@ export default function ITDraftingPage() {
         <div>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <FileText size={24} weight="duotone" color="#8B5CF6" />
-            AI Litigation Drafting Centre
+            IT Notice Drafts
           </h1>
-          <p>Generate professional Income Tax notice replies using templates or AI</p>
+          <p>Generate professional Income Tax notice drafts using templates or AI</p>
         </div>
         <div className="header-actions">
-          <Link href="/income-tax-dashboard" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', border: '1px solid var(--border)', borderRadius: '8px', textDecoration: 'none', color: 'var(--text-soft)', fontSize: '0.85rem' }}><ArrowLeft size={14} /> Dashboard</Link>
+          <Link href="/income-tax-dashboard/notices" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', border: '1px solid var(--border)', borderRadius: '8px', textDecoration: 'none', color: 'var(--text-soft)', fontSize: '0.85rem' }}>IT Notices →</Link>
         </div>
       </div>
 

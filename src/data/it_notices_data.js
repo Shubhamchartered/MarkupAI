@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════
    it_notices_data.js — Income Tax Notice & Assessment Database
-   Covers all 18+ IT notice types, assessment orders, appeals
+   ALL taxpayer data sourced from IT_CLIENT_DATA (1484 taxpayers)
    ═══════════════════════════════════════════════════════════════ */
 
 export const IT_NOTICE_TYPES = [
@@ -51,12 +51,13 @@ export const IT_NOTICE_TYPES = [
   ]},
 ];
 
+/* ─── All taxpayers & PANs are sourced from IT_CLIENT_DATA (1484 real clients) ─── */
 export const IT_NOTICES_DB = {
   notices: [
     {
       noticeId: 'IT-001',
-      taxpayer: 'ABC Infratech Pvt Ltd',
-      pan: 'AABCA3456N',
+      taxpayer: '24 BLUEBELL VENTURES PRIVATE LIMITED',
+      pan: 'AABCZ6895J',
       ay: '2023-24',
       section: '143(2)',
       type: 'Scrutiny Assessment',
@@ -77,8 +78,8 @@ export const IT_NOTICES_DB = {
     },
     {
       noticeId: 'IT-002',
-      taxpayer: 'Rajesh Kumar Sharma',
-      pan: 'ABCPS1234K',
+      taxpayer: 'A AND T ENTERPRISES (Abhijit Arjun Sutar)',
+      pan: 'GWOPS8226L',
       ay: '2022-23',
       section: '148A',
       type: 'Reassessment (New Regime)',
@@ -98,8 +99,8 @@ export const IT_NOTICES_DB = {
     },
     {
       noticeId: 'IT-003',
-      taxpayer: 'M/s Pande & Associates',
-      pan: 'AAFFP9012M',
+      taxpayer: 'AARTI NIKHIL JAMNARE',
+      pan: 'BROPK2158M',
       ay: '2024-25',
       section: '143(1)',
       type: 'Intimation',
@@ -119,8 +120,8 @@ export const IT_NOTICES_DB = {
     },
     {
       noticeId: 'IT-004',
-      taxpayer: 'Heritage Hospitality Group',
-      pan: 'AAKFT7679L',
+      taxpayer: 'ABDUL ARIF MOHAMMAD SADIQUE',
+      pan: 'BOYPM6754E',
       ay: '2021-22',
       section: '153A',
       type: 'Search Assessment',
@@ -141,8 +142,8 @@ export const IT_NOTICES_DB = {
     },
     {
       noticeId: 'IT-005',
-      taxpayer: 'Sunil Gopikishan Jaju',
-      pan: 'AENPJ1838A',
+      taxpayer: 'Abdul Hameed Abdul Quadeer',
+      pan: 'APYPA9954N',
       ay: '2024-25',
       section: '139(9)',
       type: 'Defective Return',
@@ -161,8 +162,8 @@ export const IT_NOTICES_DB = {
     },
     {
       noticeId: 'IT-006',
-      taxpayer: 'M/s Golden Exports',
-      pan: 'AABFG2345Q',
+      taxpayer: 'Abdul Imran Abdul Shakil',
+      pan: 'PKNPS5865P',
       ay: '2023-24',
       section: '270A',
       type: 'Penalty — Under-Reporting',
@@ -181,8 +182,8 @@ export const IT_NOTICES_DB = {
     },
     {
       noticeId: 'IT-007',
-      taxpayer: 'Technovision Solutions Pvt Ltd',
-      pan: 'AABCT7890T',
+      taxpayer: 'ABDUL JAMIL ABDUL JABBAR',
+      pan: 'ARHPJ8384J',
       ay: '2024-25',
       section: '201',
       type: 'TDS Default',
@@ -201,8 +202,8 @@ export const IT_NOTICES_DB = {
     },
     {
       noticeId: 'IT-008',
-      taxpayer: 'Singh & Rajput Builders',
-      pan: 'AAFFS3456V',
+      taxpayer: 'Abdul Rehman Jamal Nasir Siddiqui',
+      pan: 'DODPS9228N',
       ay: '2022-23',
       section: '263',
       type: 'Revision by CIT',
@@ -222,8 +223,8 @@ export const IT_NOTICES_DB = {
     },
     {
       noticeId: 'IT-009',
-      taxpayer: 'Deepak Rameshlal Godwani',
-      pan: 'AIHPG4567S',
+      taxpayer: 'Abdul Saleem Abdul Tammez',
+      pan: 'CJVPT4621C',
       ay: '2024-25',
       section: '156',
       type: 'Notice of Demand',
@@ -242,8 +243,8 @@ export const IT_NOTICES_DB = {
     },
     {
       noticeId: 'IT-010',
-      taxpayer: 'M/s Markup & Co.',
-      pan: 'ABMFM9409Q',
+      taxpayer: 'Abdul Shahzad Abdul Shakeel',
+      pan: 'CDUPA0102L',
       ay: '2024-25',
       section: '142(1)',
       type: 'Inquiry Notice',
@@ -266,8 +267,8 @@ export const IT_NOTICES_DB = {
   assessments: [
     {
       assessmentId: 'ASS-001',
-      taxpayer: 'M/s Golden Exports',
-      pan: 'AABFG2345Q',
+      taxpayer: 'Abdul Imran Abdul Shakil',
+      pan: 'PKNPS5865P',
       ay: '2023-24',
       type: '143(3) Scrutiny',
       orderDate: '2026-01-15',
@@ -279,11 +280,15 @@ export const IT_NOTICES_DB = {
       penaltyLevied: 575000,
       status: 'Appeal Filed',
       appealStage: 'CIT(A)',
+      appealDueDate: '2026-03-01',
+      appealSection: '246A',
+      personalHearingDate: '2026-06-15',
+      videoConferencingLink: 'https://meet.jit.si/TaxGuardAI_Appeal_ASS001',
     },
     {
       assessmentId: 'ASS-002',
-      taxpayer: 'ABC Infratech Pvt Ltd',
-      pan: 'AABCA3456N',
+      taxpayer: '24 BLUEBELL VENTURES PRIVATE LIMITED',
+      pan: 'AABCZ6895J',
       ay: '2022-23',
       type: '143(3) Scrutiny',
       orderDate: '2025-09-20',
@@ -295,6 +300,9 @@ export const IT_NOTICES_DB = {
       penaltyLevied: 0,
       status: 'Appeal Filed',
       appealStage: 'ITAT',
+      appealDueDate: '2025-11-20',
+      appealSection: '253',
+      personalHearingDate: '2026-07-20',
     },
   ],
 
@@ -302,8 +310,8 @@ export const IT_NOTICES_DB = {
     {
       appealId: 'APP-001',
       assessmentId: 'ASS-001',
-      taxpayer: 'M/s Golden Exports',
-      pan: 'AABFG2345Q',
+      taxpayer: 'Abdul Imran Abdul Shakil',
+      pan: 'PKNPS5865P',
       ay: '2023-24',
       stage: 'CIT(A)',
       filedDate: '2026-02-10',
@@ -316,8 +324,8 @@ export const IT_NOTICES_DB = {
     {
       appealId: 'APP-002',
       assessmentId: 'ASS-002',
-      taxpayer: 'ABC Infratech Pvt Ltd',
-      pan: 'AABCA3456N',
+      taxpayer: '24 BLUEBELL VENTURES PRIVATE LIMITED',
+      pan: 'AABCZ6895J',
       ay: '2022-23',
       stage: 'ITAT',
       filedDate: '2025-12-01',

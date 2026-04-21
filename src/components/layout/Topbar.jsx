@@ -1,8 +1,8 @@
 "use client";
 
-import { List, MagnifyingGlass, Sun, Moon, Bell, CaretDown, Buildings, SignOut } from '@phosphor-icons/react';
+import { List, MagnifyingGlass, Sun, Moon, Bell, CaretDown, Buildings, Receipt, SignOut, ArrowsLeftRight } from '@phosphor-icons/react';
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { searchClients } from '@/lib/notice_sync';
 
@@ -18,6 +18,8 @@ export default function Topbar({ toggleSidebar }) {
   const menuRef = useRef(null);
   const searchRef = useRef(null);
   const router = useRouter();
+  const pathname = usePathname();
+  const isITRoute = pathname?.startsWith('/income-tax');
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -70,7 +72,7 @@ export default function Topbar({ toggleSidebar }) {
         <input
           type="text"
           id="globalSearch"
-          placeholder="Search clients, User ID, GSTN…"
+          placeholder={isITRoute ? 'Search taxpayers, PAN…' : 'Search clients, User ID, GSTN…'}
           autoComplete="off"
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
@@ -148,8 +150,14 @@ export default function Topbar({ toggleSidebar }) {
       </div>
 
       <div className="topbar-right">
+        {/* Context badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.3rem 0.75rem', borderRadius: '8px', background: isITRoute ? 'rgba(14,165,233,0.1)' : 'rgba(99,102,241,0.1)', border: `1px solid ${isITRoute ? 'rgba(14,165,233,0.25)' : 'rgba(99,102,241,0.2)'}`, fontSize: '0.72rem', fontWeight: 700, color: isITRoute ? '#0ea5e9' : '#6366F1' }}>
+          {isITRoute ? <Buildings size={13} /> : <Receipt size={13} />}
+          {isITRoute ? 'Income Tax' : 'GST'}
+        </div>
+
         <Link href="/select-module" className="icon-btn" title="Switch Module" style={{ display:'flex', alignItems:'center', gap:'0.35rem', fontSize:'0.8rem', textDecoration:'none', color:'var(--text-soft)', padding:'0.4rem 0.8rem', border:'1px solid var(--border)', borderRadius:'8px' }}>
-          <Buildings size={16} /> Main Dashboard
+          <ArrowsLeftRight size={14} /> {isITRoute ? 'Switch to GST' : 'Switch Module'}
         </Link>
 
         <button className="icon-btn" onClick={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')} title="Toggle Theme">

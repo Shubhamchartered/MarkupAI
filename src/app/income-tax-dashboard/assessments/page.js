@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { Gavel, ArrowLeft, Scales, CheckCircle, Clock, WarningOctagon, CurrencyInr, CaretRight, Brain, FileText, ShieldCheck } from '@phosphor-icons/react';
+import { Gavel, Scales, WarningOctagon, CurrencyInr, Brain, FileText, ShieldCheck, UploadSimple } from '@phosphor-icons/react';
 import { IT_NOTICES_DB } from '@/data/it_notices_data';
 import Link from 'next/link';
 
@@ -72,7 +72,7 @@ export default function AssessmentsPage() {
           <p>Track assessment orders, additions, penalties, and multi-level appeals</p>
         </div>
         <div className="header-actions">
-          <Link href="/income-tax-dashboard" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', border: '1px solid var(--border)', borderRadius: '8px', textDecoration: 'none', color: 'var(--text-soft)', fontSize: '0.85rem' }}><ArrowLeft size={14} /> Dashboard</Link>
+          <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: 'linear-gradient(135deg,#0ea5e9,#0284c7)', boxShadow: '0 3px 10px rgba(14,165,233,.3)' }} onClick={() => alert('Upload Document: attach assessment order, VC links, hearing notices here')}><FileText size={14} /> Upload Order / Doc</button>
         </div>
       </div>
 
@@ -132,10 +132,14 @@ export default function AssessmentsPage() {
                   ))}
                 </div>
 
-                <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem' }}>
+                <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem', flexWrap: 'wrap' }}>
                   <div>Total Additions: <strong style={{ color: '#ef4444' }}>₹{Number(a.additions).toLocaleString('en-IN')}</strong></div>
                   {a.penaltyLevied > 0 && <div>Penalty: <strong style={{ color: '#ef4444' }}>₹{Number(a.penaltyLevied).toLocaleString('en-IN')}</strong></div>}
                   {a.appealStage && <div>Appeal at: <strong style={{ color: '#6366F1' }}>{a.appealStage}</strong></div>}
+                  {a.appealDueDate && <div>Appeal Due: <strong style={{ color: '#ef4444' }}>{new Date(a.appealDueDate).toLocaleDateString('en-GB')}</strong></div>}
+                  {a.appealSection && <div>Appeal Section: <strong style={{ color: '#6366F1' }}>§{a.appealSection}</strong></div>}
+                  {a.personalHearingDate && <div>Personal Hearing: <strong style={{ color: '#f59e0b' }}>{new Date(a.personalHearingDate).toLocaleDateString('en-GB')}</strong></div>}
+                  {a.videoConferencingLink && <div>VC Link: <a href={a.videoConferencingLink} target="_blank" rel="noreferrer" style={{ color: '#0ea5e9' }}>Join Meeting</a></div>}
                 </div>
               </div>
             </div>

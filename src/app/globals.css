@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════
    MARKUP GST Pro — Premium Design System
-   Palette: Deep Indigo · Blueprint Blue · White
+   Palette: Deep Navy · Sky Blue · Indigo
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── Google Fonts already loaded via HTML ── */
@@ -19,6 +19,16 @@
   --blue-500:   #3b82f6;
   --blue-400:   #60a5fa;
   --blue-100:   #dbeafe;
+
+  /* IT accent — Sky Blue */
+  --sky-700:    #0369a1;
+  --sky-600:    #0284c7;
+  --sky-500:    #0ea5e9;
+  --sky-400:    #38bdf8;
+  --sky-300:    #7dd3fc;
+  --sky-200:    #bae6fd;
+  --sky-100:    #e0f2fe;
+  --sky-50:     #f0f9ff;
 
   /* Semantic */
   --success:  #10b981;
@@ -49,19 +59,26 @@
 }
 
 [data-theme="dark"] {
-  --bg:          #07091a;
-  --bg-surface:  #0f1228;
-  --bg-elevated: #171a35;
-  --bg-hover:    #1c2040;
-  --border:      #232751;
-  --text:        #eef2ff;
-  --text-muted:  #94a3b8;
-  --text-soft:   #6b7280;
-  --sidebar-bg:  #0c0e24;
-  --sidebar-text:#c7d2fe;
-  --shadow-sm:   0 1px 3px rgba(0,0,0,.4);
-  --shadow-md:   0 4px 16px rgba(0,0,0,.5);
-  --shadow-lg:   0 8px 30px rgba(0,0,0,.6);
+  /* ── Black & White Glassmorphism Dark Theme ── */
+  --bg:          #000000;
+  --bg-surface:  rgba(18, 18, 18, 0.45);
+  --bg-elevated: rgba(30, 30, 30, 0.55);
+  --bg-hover:    rgba(255, 255, 255, 0.05);
+  --border:      rgba(255, 255, 255, 0.12);
+  --text:        #ffffff;
+  --text-muted:  #a1a1aa;
+  --text-soft:   #71717a;
+  --sidebar-bg:  rgba(10, 10, 10, 0.65);
+  --sidebar-text:#e4e4e7;
+  --shadow-sm:   0 4px 16px rgba(0,0,0,0.6);
+  --shadow-md:   0 8px 24px rgba(0,0,0,0.8);
+  --shadow-lg:   0 16px 40px rgba(0,0,0,0.95);
+}
+
+/* ── Global Glassmorphism utilities ── */
+.glass-effect {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 /* ── Reset ───────────────────────────────── */
@@ -256,12 +273,61 @@ ul { list-style: none; }
   padding: .9rem 1rem;
   flex-shrink: 0;
 }
+
+/* ── IT Sidebar Active (sky-blue accent) ── */
+.it-sidebar .nav-link.it-active {
+  background: linear-gradient(90deg, rgba(14,165,233,.18), rgba(2,132,199,.08));
+  color: var(--sky-400);
+  font-weight: 600;
+}
+.it-sidebar .nav-link.it-active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 20%; height: 60%; width: 3px;
+  background: var(--sky-500);
+  border-radius: 0 3px 3px 0;
+}
+.it-sidebar .nav-link:hover {
+  background: var(--bg-hover);
+  color: var(--sky-400);
+}
+
+/* ── Switch Workspace Button ── */
+.sidebar-switch-btn {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  padding: .45rem .85rem;
+  border-radius: .5rem;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--text-soft);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  transition: all .18s ease;
+  text-decoration: none;
+  margin-bottom: .5rem;
+}
+.sidebar-switch-btn:hover {
+  border-color: var(--sky-500);
+  color: var(--sky-400);
+  background: rgba(14,165,233,.06);
+}
+
+/* ── Sidebar Footer Label ── */
+.sidebar-switch-footer {
+  display: flex; align-items: center; gap: .5rem;
+  font-size: .72rem; font-weight: 600;
+  color: var(--text-soft);
+}
+
 .sidebar-user {
   display: flex; align-items: center; gap: .75rem;
 }
 .sidebar-user img { width:36px; height:36px; border-radius:50%; border:2px solid var(--indigo-500); }
 .su-name { font-size: .85rem; font-weight: 600; }
 .su-role { font-size: .72rem; color: var(--text-muted); }
+
 
 /* ── MAIN WRAPPER ────────────────────────── */
 .main-wrapper {
@@ -276,6 +342,8 @@ ul { list-style: none; }
 .topbar {
   height: var(--topbar-h);
   background: var(--bg-surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -447,6 +515,8 @@ ul { list-style: none; }
 
 .kpi-card {
   background: var(--bg-surface);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.4rem;
@@ -505,6 +575,8 @@ ul { list-style: none; }
 
 .qs-box {
   background: var(--bg-surface);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border);
   border-radius: .75rem;
   padding: 1rem 1.25rem;
@@ -524,6 +596,8 @@ ul { list-style: none; }
 /* ── SECTION CARD ────────────────────────── */
 .section-card {
   background: var(--bg-surface);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border);
   border-radius: 1rem;
   box-shadow: var(--shadow-sm);
@@ -2307,3 +2381,263 @@ tr:hover td { background: var(--bg-hover); }
   font-weight: 700;
   font-size: 0.82rem;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   IT MODULE — Horizontal Top Navigation (replaces sidebar)
+   ══════════════════════════════════════════════════════════════ */
+
+/* When on IT routes the layout shifts: no sidebar, topnav on top */
+.layout-it {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.it-main-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ── Horizontal Top Navigation Bar ─────── */
+.it-topnav {
+  height: 52px;
+  background: var(--sidebar-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 1.25rem;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.35);
+  z-index: 200;
+  position: relative;
+}
+
+/* Brand section */
+.it-topnav-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-right: 1.5rem;
+  flex-shrink: 0;
+}
+
+.it-topnav-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 900;
+  font-size: 0.62rem;
+  letter-spacing: -0.5px;
+  flex-shrink: 0;
+}
+
+.it-topnav-name {
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--sky-400);
+  white-space: nowrap;
+}
+.it-topnav-name span {
+  color: var(--sky-500);
+}
+
+.it-topnav-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-soft);
+  border: 1px solid var(--border);
+  padding: 0.22rem 0.55rem;
+  border-radius: 6px;
+  background: var(--bg);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: all 0.18s;
+  margin-left: 0.5rem;
+}
+.it-topnav-switch:hover {
+  border-color: var(--sky-500);
+  color: var(--sky-400);
+  background: rgba(14,165,233,0.06);
+}
+
+/* Center nav links */
+.it-topnav-links {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  flex: 1;
+}
+
+.it-topnav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.42rem 0.85rem;
+  border-radius: 7px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-soft);
+  white-space: nowrap;
+  transition: all 0.18s;
+  text-decoration: none;
+  background: none;
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+.it-topnav-link:hover,
+.it-topnav-link.it-nav-active {
+  background: rgba(14,165,233,0.12);
+  color: var(--sky-400);
+}
+.it-topnav-link.it-nav-active {
+  font-weight: 700;
+  border-bottom: 2px solid var(--sky-500);
+  border-radius: 7px 7px 0 0;
+}
+
+/* Dropdown container */
+.it-topnav-dropdown {
+  position: relative;
+}
+
+.it-topnav-caret {
+  transition: transform 0.2s ease;
+  opacity: 0.7;
+}
+.it-topnav-caret.rotated {
+  transform: rotate(-180deg);
+}
+
+/* Dropdown menu */
+.it-topnav-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 250px;
+  background: var(--bg-elevated);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 0.6rem;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.65);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 500;
+}
+.it-topnav-dropdown.open .it-topnav-menu {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateY(0);
+}
+
+.it-topnav-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1.1rem;
+  border-radius: 10px;
+  font-size: 0.94rem;
+  font-weight: 600;
+  color: var(--text-soft);
+  text-decoration: none;
+  transition: all 0.15s;
+  letter-spacing: 0.015em;
+}
+.it-topnav-menu-item svg {
+  color: var(--text-muted);
+}
+.it-topnav-menu-item:hover svg,
+.it-topnav-menu-item.it-nav-active svg,
+.it-topnav-menu-item.gst-nav-active svg {
+  color: var(--sky-400);
+}
+.it-topnav-menu-item:hover,
+.it-topnav-menu-item.it-nav-active,
+.it-topnav-menu-item.gst-nav-active {
+  background: rgba(14,165,233,0.12);
+  color: var(--sky-400);
+  font-weight: 600;
+}
+
+/* Right status badge */
+.it-topnav-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.it-topnav-status {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-soft);
+  white-space: nowrap;
+}
+
+/* ── IT Content Area (below topnav, no sidebar) ── */
+.it-content-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.75rem 2rem;
+  scroll-behavior: smooth;
+}
+
+/* Title breadcrumb strip (small area at top of content) */
+.it-page-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-soft);
+  margin-bottom: 1.25rem;
+  padding: 0.45rem 0.85rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: fit-content;
+}
+.it-page-breadcrumb .bc-sep {
+  color: var(--text-soft);
+  opacity: 0.5;
+}
+.it-page-breadcrumb .bc-active {
+  color: var(--sky-400);
+  font-weight: 700;
+}
+
+/* ── Sidebar IT section updated styles ─── */
+.nav-it-group-label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--sky-400);
+  padding: 0.5rem 0.7rem 0.2rem;
+  text-transform: uppercase;
+  margin-top: 0.5rem;
+}
+

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from 'react';
-import { ArrowsLeftRight, ArrowLeft, WarningOctagon, ShieldWarning, CurrencyInr, Buildings, ArrowRight, Globe, Bank, HandCoins, Eye } from '@phosphor-icons/react';
+import { ArrowsLeftRight, WarningOctagon, ShieldWarning, CurrencyInr, Buildings, ArrowRight, Globe, HandCoins } from '@phosphor-icons/react';
 import { CROSS_ACT_REFERENCES } from '@/data/it_legal_corpus';
+import { IT_NOTICES_DB } from '@/data/it_notices_data';
 import Link from 'next/link';
 
 const ACT_ICONS = {
@@ -13,49 +14,46 @@ const ACT_ICONS = {
   GST: { icon: <HandCoins size={24} />, color: '#10b981', gradient: 'linear-gradient(135deg, #10b981, #059669)' },
 };
 
-// Sample cross-act alerts for demo
-const CROSS_ACT_ALERTS = [
-  {
-    id: 'XA-001',
-    taxpayer: 'Heritage Hospitality Group',
-    pan: 'AAKFT7679L',
-    sourceNotice: 'IT-004 (§153A Search)',
-    crossActs: ['PMLA', 'Benami'],
-    severity: 'High',
-    summary: 'Search u/s 132 uncovered undisclosed properties in names of relatives and large cash transactions flagged by FIU. ED referral likely.',
-    flagDate: '2025-09-15',
-  },
-  {
-    id: 'XA-002',
-    taxpayer: 'Singh & Rajput Builders',
-    pan: 'AAFFS3456V',
-    sourceNotice: 'IT-008 (§263 Revision)',
-    crossActs: ['Benami', 'GST'],
-    severity: 'Medium',
-    summary: 'Bogus sub-contractor payments may involve benami entities. GST turnover mismatch detected across IT and GSTR-9.',
-    flagDate: '2025-12-10',
-  },
-  {
-    id: 'XA-003',
-    taxpayer: 'M/s Golden Exports',
-    pan: 'AABFG2345Q',
-    sourceNotice: 'IT-006 (§270A Penalty)',
-    crossActs: ['FEMA', 'GST'],
-    severity: 'Medium',
-    summary: 'Export proceeds not fully realised within FEMA timelines. Under-reporting of income aligns with GST export refund claims — cross-verification needed.',
-    flagDate: '2026-02-01',
-  },
-  {
-    id: 'XA-004',
-    taxpayer: 'Technovision Solutions Pvt Ltd',
-    pan: 'AABCT7890T',
-    sourceNotice: 'IT-007 (§201 TDS Default)',
-    crossActs: ['FEMA'],
-    severity: 'Low',
-    summary: 'Foreign consultant payments without TDS u/s 195 may trigger FEMA scrutiny for remittance without RBI approval. Form 15CA/15CB compliance check needed.',
-    flagDate: '2026-03-01',
-  },
-];
+function generateCrossActAlerts(notices) {
+  const alerts = [];
+  let idCounter = 1;
+  for (const notice of notices) {
+    if (notice.section === '153A') {
+      alerts.push({
+        id: `XA-00${idCounter++}`, taxpayer: notice.taxpayer, pan: notice.pan,
+        sourceNotice: `${notice.noticeId} (§${notice.section} Search)`,
+        crossActs: ['PMLA', 'Benami'], severity: 'High',
+        summary: 'Search u/s 132 uncovered undisclosed properties or transactions. ED referral likely.',
+        flagDate: notice.dateIssued,
+      });
+    } else if (notice.section === '263') {
+      alerts.push({
+        id: `XA-00${idCounter++}`, taxpayer: notice.taxpayer, pan: notice.pan,
+        sourceNotice: `${notice.noticeId} (§${notice.section} Revision)`,
+        crossActs: ['Benami', 'GST'], severity: 'Medium',
+        summary: 'Bogus sub-contractor payments may involve benami entities. GST turnover mismatch detected.',
+        flagDate: notice.dateIssued,
+      });
+    } else if (notice.section === '270A') {
+      alerts.push({
+        id: `XA-00${idCounter++}`, taxpayer: notice.taxpayer, pan: notice.pan,
+        sourceNotice: `${notice.noticeId} (§${notice.section} Penalty)`,
+        crossActs: ['FEMA', 'GST'], severity: 'Medium',
+        summary: 'Under-reporting of income aligns with GST mismatch. Cross-verification needed.',
+        flagDate: notice.dateIssued,
+      });
+    } else if (notice.section === '201') {
+      alerts.push({
+        id: `XA-00${idCounter++}`, taxpayer: notice.taxpayer, pan: notice.pan,
+        sourceNotice: `${notice.noticeId} (§${notice.section} TDS Default)`,
+        crossActs: ['FEMA'], severity: 'Low',
+        summary: 'Foreign remittances without TDS u/s 195 may trigger FEMA scrutiny.',
+        flagDate: notice.dateIssued,
+      });
+    }
+  }
+  return alerts;
+}
 
 function CrossActDetail({ act, onClose }) {
   const ref = CROSS_ACT_REFERENCES[act];
@@ -122,6 +120,7 @@ function CrossActDetail({ act, onClose }) {
 export default function CrossActPage() {
   const [selectedAct, setSelectedAct] = useState(null);
   const [expandedAlert, setExpandedAlert] = useState(null);
+  const CROSS_ACT_ALERTS = generateCrossActAlerts(IT_NOTICES_DB.notices);
 
   return (
     <section className="view active" id="view-it-crossact">
@@ -133,7 +132,6 @@ export default function CrossActPage() {
           <p>Detect and manage cross-act implications: FEMA · PMLA · Benami · Black Money · GST</p>
         </div>
         <div className="header-actions">
-          <Link href="/income-tax-dashboard" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', border: '1px solid var(--border)', borderRadius: '8px', textDecoration: 'none', color: 'var(--text-soft)', fontSize: '0.85rem' }}><ArrowLeft size={14} /> Dashboard</Link>
         </div>
       </div>
 

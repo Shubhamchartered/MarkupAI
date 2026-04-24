@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
-import { Gear, Brain, PaperPlaneRight, Paperclip, X, Spinner, ArrowClockwise } from '@phosphor-icons/react';
+import { PaperPlaneRight, Paperclip, X, ArrowClockwise } from '@phosphor-icons/react';
 
 const QUICK_QUESTIONS = [
   { icon: '📋', label: 'Draft reply for SCN u/s 73', text: 'Draft a professional reply to a Show Cause Notice under Section 73 of CGST Act for ITC mismatch. Use the standard DRC-06 format with placeholders for client-specific data.' },
@@ -110,51 +110,25 @@ export default function AIPage() {
   return (
     <section className="view active" id="view-ai" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
 
-      {/* Header */}
-      <div className="ai-view-header">
-        <div className="ai-vh-left">
-          <div className="ai-vh-icon"><Brain size={24} weight="fill" /></div>
-          <div>
-            <div className="ai-vh-title">MARKUP.AI — GST Intelligence Engine</div>
-            <div className="ai-vh-sub">RESEARCH · DRAFTING · CASE LAW · ANALYSIS</div>
-          </div>
-        </div>
-        <div className="ai-vh-right">
-          <div className="ai-mode-tabs" style={{ display: 'flex', gap: '0.5rem', marginRight: '1rem' }}>
-            {[['chat', '⟡ Chat'], ['search', '⊕ Law Search']].map(([tab, label]) => (
-              <button key={tab}
-                className={`btn-secondary ${activeTab === tab ? 'active' : ''}`}
-                onClick={() => setActiveTab(tab)}
-                style={{ border: activeTab === tab ? '1px solid var(--primary-color)' : '', background: activeTab === tab ? 'rgba(99, 102, 241, 0.1)' : '' }}
-              >{label}</button>
-            ))}
-          </div>
-          {messages.length > 0 && (
-            <button className="btn-secondary" onClick={clearChat} title="Clear Chat"><ArrowClockwise size={16} /></button>
-          )}
-          <button className="btn-secondary"><Gear /></button>
-        </div>
-      </div>
-
       {activeTab === 'chat' && (
         <div className="ai-chat-pane" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
           {/* Messages Area */}
           <div className="ai-messages-scroll" style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
             {messages.length === 0 ? (
-              <div style={{ textAlign: 'center', marginTop: '3%' }}>
+              <div style={{ textAlign: 'center', marginTop: '4%' }}>
                 {/* Welcome Banner */}
                 <div style={{ marginBottom: '2.5rem' }}>
-                  <div style={{ fontSize: '2.8rem', fontWeight: 900, letterSpacing: '-1px', marginBottom: '0.5rem' }}>
+                  <div style={{ fontSize: '2.6rem', fontWeight: 900, letterSpacing: '-1px', marginBottom: '0.5rem' }}>
                     Welcome to&nbsp;
                     <span style={{ background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                       M A R K U P . A I
                     </span>
                   </div>
-                  <div style={{ fontSize: '1.15rem', color: 'var(--text-soft)', fontWeight: 500 }}>Your AI GST Expert — Draft · Research · Analyse</div>
-                  <div style={{ width: 60, height: 3, background: 'linear-gradient(90deg,#6366F1,#8B5CF6)', margin: '1rem auto', borderRadius: '99px' }} />
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-soft)', maxWidth: '500px', margin: '0 auto', lineHeight: '1.6' }}>
-                    Ask any question about GST law, draft notice replies, analyse ITC mismatches, or get legal strategy advice.
+                  <div style={{ fontSize: '1.1rem', color: 'var(--text-soft)', fontWeight: 600 }}>Your AI GST Expert — Draft · Research · Analyse</div>
+                  <div style={{ width: 60, height: 3, background: 'linear-gradient(90deg,#6366F1,#8B5CF6)', margin: '0.85rem auto', borderRadius: '99px' }} />
+                  <div style={{ fontSize: '0.88rem', color: 'var(--text-soft)', maxWidth: '520px', margin: '0 auto', lineHeight: '1.7', fontStyle: 'italic' }}>
+                    Your Solution for GST law, draft notice replies, analyse ITC mismatches, or get legal strategy advice.
                   </div>
                 </div>
 
@@ -271,9 +245,25 @@ export default function AIPage() {
 
           {/* Input Bar */}
           <div className="ai-input-bar" style={{
-            padding: '1.25rem 1.5rem', background: 'var(--bg)',
+            padding: '0.75rem 1.5rem 1.25rem', background: 'var(--bg)',
             borderTop: '1px solid var(--border)'
           }}>
+            {/* Tab strip + Clear */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+              <div style={{ display: 'flex', gap: '0.4rem' }}>
+                {[['chat', '⟡ Chat'], ['search', '⊕ Law Search']].map(([tab, label]) => (
+                  <button key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    style={{ padding: '0.25rem 0.75rem', borderRadius: '99px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', border: activeTab === tab ? '1px solid #6366F1' : '1px solid var(--border)', background: activeTab === tab ? 'rgba(99,102,241,0.12)' : 'var(--bg-elevated)', color: activeTab === tab ? '#6366F1' : 'var(--text-soft)', transition: 'all 0.2s' }}
+                  >{label}</button>
+                ))}
+              </div>
+              {messages.length > 0 && (
+                <button onClick={clearChat} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.25rem 0.65rem', borderRadius: '99px', fontSize: '0.73rem', fontWeight: 600, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-soft)', cursor: 'pointer' }}>
+                  <ArrowClockwise size={12} /> Clear
+                </button>
+              )}
+            </div>
             {files.length > 0 && (
               <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.8rem', flexWrap: 'wrap' }}>
                 {files.map((f, i) => (

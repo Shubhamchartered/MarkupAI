@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef } from 'react';
-import { WarningOctagon, EnvelopeOpen, CheckSquare, CurrencyInr, FileCode, CheckCircle, Warning, UploadSimple, X, UserCircle, FolderOpen, Lightning, Trash, ArrowLeft } from '@phosphor-icons/react';
+import { useState, useRef, useEffect } from 'react';
+import { WarningOctagon, EnvelopeOpen, CheckSquare, CurrencyInr, FileCode, CheckCircle, Warning, UploadSimple, X, EnvelopeSimple, ArrowClockwise, Spinner, UserPlus } from '@phosphor-icons/react';
 import { NOTICES_DB } from '@/data/notices_data';
 import { MatterEngine } from '@/lib/matter_engine';
 import { CLIENT_DATA } from '@/data/client_data';
+import { useYmailNotices } from '@/lib/useYmailNotices';
 import Link from 'next/link';
 
 const GST_NOTICE_TYPES = [
@@ -84,16 +85,76 @@ function MatterTab({ onClose }) {
     setFormData(prev => ({ ...prev, [id.replace('mf-', '')]: value }));
   };
 
-  const handleUploadNotice = (e) => {
-    if (e.target.files && e.target.files.length > 0) {
-      alert('Notice parsed! Auto-filling details from uploaded document...');
-      setFormData(prev => ({
-        ...prev,
-        legalName: 'M/s Uploaded Enterprises', gstin: '27AADCA1234F1Z9', state: 'Maharashtra',
-        noticeType: 'DRC-01 (Sec 73)', noticeNumber: 'DRC01/2026/MH/0042',
-        issueDate: '2026-04-10', dueDate: '2026-05-10', issuingAuthority: 'State Tax Officer, Pune',
-      }));
+  const handleUploadNotice = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsClassifying(true);
+    setClassifyError('');
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch('/api/notice-classify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file: { name: file.name, base64, type: file.type } }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setClassifyResult({ extracted: data.extracted, matchedClient: data.matchedClient, fileName: file.name });
+      setShowClassifyModal(true);
+    } catch (err) {
+      setClassifyError('Classification failed: ' + err.message);
+      alert('⚠️ ' + err.message + '\n\nPlease fill notice details manually.');
+    } finally {
+      setIsClassifying(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
+  };
+
+  const confirmSaveNotice = (overrides = {}) => {
+    if (!classifyResult) return;
+    const { extracted, matchedClient, fileName } = classifyResult;
+    const newNotice = {
+      notice_id:         extracted.noticeId || `UPL-${Date.now()}`,
+      source:            'upload',
+      fileName,
+      trade_name:        overrides.clientName || matchedClient?.userName || extracted.clientName || 'Unknown Client',
+      gstin:             matchedClient?.gstn || extracted.gstin || '—',
+      type:              extracted.noticeType || 'GST Notice',
+      section:           extracted.section || '—',
+      issue_date:        extracted.issueDate || '—',
+      due_date:          extracted.dueDate || '—',
+      amount:            extracted.demandAmount || 0,
+      issuingAuthority:  extracted.issuingAuthority || '—',
+      period:            extracted.period || '—',
+      facts:             extracted.facts || '—',
+      status:            'Open',
+      savedAt:           new Date().toISOString(),
+      matchedClientId:   matchedClient?.userId || null,
+    };
+    const updated = [newNotice, ...uploadedNotices];
+    setUploadedNotices(updated);
+    try { localStorage.setItem('markup_notices_gst', JSON.stringify(updated)); } catch {}
+    setShowClassifyModal(false);
+    setClassifyResult(null);
+  };
+
+  const markReplied = (noticeId) => {
+    const updated = uploadedNotices.map(n =>
+      n.notice_id === noticeId ? { ...n, status: 'Replied' } : n
+    );
+    setUploadedNotices(updated);
+    try { localStorage.setItem('markup_notices_gst', JSON.stringify(updated)); } catch {}
+  };
+
+  const deleteNotice = (noticeId) => {
+    const updated = uploadedNotices.filter(n => n.notice_id !== noticeId);
+    setUploadedNotices(updated);
+    try { localStorage.setItem('markup_notices_gst', JSON.stringify(updated)); } catch {}
   };
 
   const handleGenerate = () => {
@@ -216,14 +277,27 @@ function MatterTab({ onClose }) {
 }
 
 export default function NoticesPage() {
-  const [notices, setNotices] = useState(NOTICES_DB.notices || []);
+  const [uploadedNotices, setUploadedNotices] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('markup_notices_gst') || '[]'); } catch { return []; }
+  });
   const [filterType, setFilterType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [activeMatterRow, setActiveMatterRow] = useState(null);
+  const [isClassifying, setIsClassifying] = useState(false);
+  const [classifyResult, setClassifyResult] = useState(null);
+  const [showClassifyModal, setShowClassifyModal] = useState(false);
+  const [classifyError, setClassifyError] = useState('');
+  const [newClientFields, setNewClientFields] = useState({ clientName: '', gstin: '', state: '' });
+  const [showNewClientForm, setShowNewClientForm] = useState(false);
   const fileInputRef = useRef(null);
 
-  const filteredNotices = notices.filter(n => {
-    if (filterType && n.type !== filterType) return false;
+  // Load real notices from Ymail fetch
+  const { notices: ymailNotices, loading: ymailLoading, refresh: ymailRefresh } = useYmailNotices('gst');
+
+  // Merge: Ymail notices first, then manually uploaded ones
+  const allNotices = [...ymailNotices, ...uploadedNotices];
+
+  const filteredNotices = allNotices.filter(n => {
     if (filterStatus && n.status !== filterStatus) return false;
     return true;
   });
@@ -232,17 +306,18 @@ export default function NoticesPage() {
     if (e.target.files && e.target.files.length > 0) {
       alert(`✅ File "${e.target.files[0].name}" uploaded. Notice data extracted and new record added.`);
       const newNotice = {
-        notice_id: `AUTO-${Math.floor(Math.random()*9000)+1000}`,
+        notice_id:  `UPL-${Math.floor(Math.random()*9000)+1000}`,
+        source:     'upload',
         trade_name: 'Uploaded Client',
-        gstin: '27AADCA0000X1Z9',
-        type: 'DRC-01 (Sec 73)',
-        section: 'Sec 73',
-        issue_date: new Date().toLocaleDateString('en-GB'),
-        due_date: new Date(Date.now() + 30 * 86400000).toLocaleDateString('en-GB'),
-        demand: '₹0',
-        status: 'Open',
+        gstin:      '—',
+        type:       'GST Notice',
+        section:    '—',
+        issue_date: new Date().toLocaleDateString('en-IN'),
+        due_date:   new Date(Date.now() + 30 * 86400000).toLocaleDateString('en-IN'),
+        amount:     0,
+        status:     'Open',
       };
-      setNotices(prev => [newNotice, ...prev]);
+      setUploadedNotices(prev => [newNotice, ...prev]);
       fileInputRef.current.value = '';
     }
   };
@@ -265,10 +340,10 @@ export default function NoticesPage() {
           <p>Manage, track, upload and draft replies for all active GST notices across clients.</p>
         </div>
         <div className="header-actions">
-          {/* Upload button supporting all types */}
           <input ref={fileInputRef} type="file" id="notice-upload-main" style={{ display: 'none' }} onChange={handleUploadNotice} accept=".pdf,.json,.xlsx,.xls,.docx,.doc,.png,.jpg,.jpeg,.webp" />
-          <button className="btn-secondary" onClick={() => fileInputRef.current?.click()}>
-            <UploadSimple /> Upload Notice
+          <button className="btn-secondary" onClick={() => fileInputRef.current?.click()} disabled={isClassifying}
+            style={{ opacity: isClassifying ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            {isClassifying ? <>⏳ Classifying…</> : <><UploadSimple /> Upload Notice</>}
           </button>
           {/* Type filter with full GST sections */}
           <select className="filter-select" value={filterType} onChange={e => setFilterType(e.target.value)}>
@@ -291,11 +366,22 @@ export default function NoticesPage() {
 
       {/* Notice KPIs */}
       <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', marginBottom: '1.5rem' }}>
-        <div className="kpi-card kpi-danger"><div className="kpi-icon"><WarningOctagon /></div><div className="kpi-body"><p>Critical</p><h2>{notices.filter(n => n.status === 'Critical').length}</h2></div></div>
-        <div className="kpi-card kpi-blue"><div className="kpi-icon"><EnvelopeOpen /></div><div className="kpi-body"><p>Open</p><h2>{notices.filter(n => n.status === 'Open').length}</h2></div></div>
-        <div className="kpi-card kpi-indigo"><div className="kpi-icon"><CheckSquare /></div><div className="kpi-body"><p>Replied</p><h2>{notices.filter(n => n.status === 'Replied').length}</h2></div></div>
-        <div className="kpi-card kpi-amber"><div className="kpi-icon"><CurrencyInr /></div><div className="kpi-body"><p>Total Demand</p><h2>₹22.5L</h2></div></div>
+        <div className="kpi-card kpi-danger"><div className="kpi-icon"><WarningOctagon /></div><div className="kpi-body"><p>Critical</p><h2>{allNotices.filter(n => n.status === 'Critical' || n.status === 'New').length}</h2></div></div>
+        <div className="kpi-card kpi-blue"><div className="kpi-icon"><EnvelopeOpen /></div><div className="kpi-body"><p>Open / New</p><h2>{allNotices.filter(n => n.status === 'Open' || n.status === 'New').length}</h2></div></div>
+        <div className="kpi-card kpi-green"><div className="kpi-icon"><EnvelopeSimple /></div><div className="kpi-body"><p>Ymail Fetched</p><h2>{ymailNotices.length}</h2></div></div>
+        <div className="kpi-card kpi-indigo"><div className="kpi-icon"><CheckSquare /></div><div className="kpi-body"><p>Uploaded</p><h2>{uploadedNotices.length}</h2></div></div>
       </div>
+
+      {/* Ymail source info */}
+      {ymailNotices.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem 1rem', background: 'rgba(99,102,241,.06)', border: '1px solid rgba(99,102,241,.2)', borderRadius: '10px', marginBottom: '1rem', fontSize: '0.83rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+          <span>📧</span>
+          <span>{ymailNotices.length} GST notice{ymailNotices.length !== 1 ? 's' : ''} auto-fetched from gandhisanjeev@ymail.com</span>
+          <button onClick={ymailRefresh} style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.3rem 0.7rem', border: '1px solid rgba(99,102,241,.3)', borderRadius: '7px', background: 'none', color: '#6366f1', fontWeight: 700, cursor: 'pointer', fontSize: '0.78rem' }}>
+            <ArrowClockwise size={12} /> Refresh
+          </button>
+        </div>
+      )}
 
       <div className="section-card no-pad">
         <div className="sc-header">
@@ -310,38 +396,66 @@ export default function NoticesPage() {
                 <th>Notice Type (Section)</th>
                 <th>Issue Date</th>
                 <th>Due Date</th>
-                <th>Demand</th>
                 <th>Status</th>
+                <th>Source</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredNotices.map((n, i) => (
+              {ymailLoading && allNotices.length === 0 && (
+                <tr><td colSpan="8" style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-soft)' }}>
+                  ⏳ Loading notices from Ymail…
+                </td></tr>
+              )}
+              {!ymailLoading && filteredNotices.map((n, i) => (
                 <>
                   <tr key={n.notice_id || i}>
-                    <td><strong>{n.notice_id}</strong></td>
+                    <td><strong style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{n.notice_id}</strong></td>
                     <td>
-                      <div style={{ fontWeight: 500 }}>{n.trade_name}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-soft)' }}>{n.gstin}</div>
+                      <div style={{ fontWeight: 500 }}>{n.trade_name || n.matchedClients?.[0]?.clientName || '—'}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-soft)', fontFamily: 'monospace' }}>{n.gstin || n.matchedClients?.[0]?.gstin || n.gstinsFound?.[0] || '—'}</div>
                     </td>
                     <td>
-                      <div>{n.type}</div>
-                      {n.section && <span className="badge-outline" style={{ fontSize: '0.75rem' }}>{n.section}</span>}
+                      <div>{n.type || n.noticeType || '—'}</div>
                     </td>
-                    <td>{n.issue_date}</td>
-                    <td style={{ color: n.status === 'Critical' ? 'var(--danger-color)' : 'inherit', fontWeight: n.status === 'Critical' ? 600 : 'normal' }}>{n.due_date}</td>
-                    <td>{n.demand || '—'}</td>
+                    <td>{n.issue_date || (n.dateReceived ? new Date(n.dateReceived).toLocaleDateString('en-IN') : '—')}</td>
+                    <td style={{ color: n.status === 'Critical' ? 'var(--danger-color)' : 'inherit', fontWeight: n.status === 'Critical' ? 600 : 'normal' }}>{n.due_date || '—'}</td>
                     <td>{getStatusBadge(n.status)}</td>
                     <td>
-                      <div className="action-cell">
-                        <button className="icon-btn-sm tooltip" data-tip="Generate Draft"><FileCode /></button>
-                        <button 
-                          className="btn-secondary" 
-                          style={{ padding: '0.25rem 0.6rem', fontSize: '0.78rem' }}
+                      {n.source === 'ymail'
+                        ? <span style={{ fontSize: '0.68rem', padding: '0.1rem 0.4rem', borderRadius: '5px', background: 'rgba(99,102,241,.1)', color: '#6366f1', fontWeight: 700 }}>📧 Ymail</span>
+                        : <span style={{ fontSize: '0.68rem', padding: '0.1rem 0.4rem', borderRadius: '5px', background: 'rgba(16,185,129,.08)', color: '#10b981', fontWeight: 700 }}>⬆ Upload</span>
+                      }
+                    </td>
+                    <td>
+                      <div className="action-cell" style={{ display: 'flex', gap: '0.35rem', flexWrap: 'nowrap' }}>
+                        <button className="icon-btn-sm tooltip" data-tip="Generate Draft" title="Generate Draft Reply"><FileCode size={13}/></button>
+                        <button
+                          className="btn-secondary"
+                          style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem', whiteSpace: 'nowrap' }}
                           onClick={() => setActiveMatterRow(activeMatterRow === (n.notice_id || i) ? null : (n.notice_id || i))}
                         >
                           📋 Matter
                         </button>
+                        {n.source === 'upload' && n.status !== 'Replied' && (
+                          <button
+                            className="btn-secondary"
+                            style={{ padding: '0.2rem 0.5rem', fontSize: '0.72rem', whiteSpace: 'nowrap', color: 'var(--success)', borderColor: 'var(--success)' }}
+                            onClick={() => markReplied(n.notice_id)}
+                            title="Mark as Replied — removes from active tracker"
+                          >
+                            ✓ Replied
+                          </button>
+                        )}
+                        {n.source === 'upload' && (
+                          <button
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', padding: '0.2rem' }}
+                            onClick={() => { if (confirm('Remove this notice?')) deleteNotice(n.notice_id); }}
+                            title="Delete notice"
+                          >
+                            <X size={13} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -354,13 +468,104 @@ export default function NoticesPage() {
                   )}
                 </>
               ))}
-              {filteredNotices.length === 0 && (
-                <tr><td colSpan="8" style={{ textAlign: 'center', padding: '2rem' }}>No notices found.</td></tr>
+              {!ymailLoading && filteredNotices.length === 0 && (
+                <tr><td colSpan="8">
+                  <div style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
+                    <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📭</div>
+                    <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.35rem' }}>No GST notices yet</div>
+                    <div style={{ color: 'var(--text-soft)', fontSize: '0.85rem', maxWidth: 400, margin: '0 auto', lineHeight: 1.6 }}>
+                      Notices will appear here automatically when fetched from gandhisanjeev@ymail.com,
+                      or when you manually upload a notice PDF.
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '1.25rem' }}>
+                      <Link href="/" style={{ padding: '0.5rem 1.1rem', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', color: '#fff', borderRadius: '8px', fontWeight: 700, fontSize: '0.85rem', textDecoration: 'none' }}>
+                        📧 Go to GST Dashboard → Run Ymail
+                      </Link>
+                      <button onClick={() => fileInputRef.current?.click()} style={{ padding: '0.5rem 1.1rem', border: '1px solid var(--border)', borderRadius: '8px', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', background: 'var(--bg)', color: 'var(--text)' }}>
+                        ⬆ Upload Notice
+                      </button>
+                    </div>
+                  </div>
+                </td></tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* ===== AI CLASSIFICATION CONFIRMATION MODAL ===== */}
+      {showClassifyModal && classifyResult && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+          <div style={{ background: 'var(--bg-elevated)', borderRadius: '16px', width: '100%', maxWidth: '640px', border: '1px solid var(--border)', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'var(--bg-elevated)', zIndex: 1 }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: '1rem' }}>🤖 AI Notice Classification</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-soft)' }}>File: {classifyResult.fileName}</div>
+              </div>
+              <button onClick={() => { setShowClassifyModal(false); setClassifyResult(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-soft)' }}><X size={18} /></button>
+            </div>
+            <div style={{ padding: '1.25rem 1.5rem' }}>
+              {/* Client Match Banner */}
+              {classifyResult.matchedClient ? (
+                <div style={{ padding: '0.75rem 1rem', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <CheckCircle size={18} color="var(--success)" />
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--success)' }}>Client Matched: {classifyResult.matchedClient.userName}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-soft)', fontFamily: 'monospace' }}>GSTIN: {classifyResult.matchedClient.gstn}</div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ padding: '0.75rem 1rem', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '10px', marginBottom: '1rem' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--warning)', marginBottom: '0.35rem' }}>⚠️ No matching client found in your directory</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-soft)', marginBottom: '0.6rem' }}>Extracted name: <strong>{classifyResult.extracted.clientName || '—'}</strong> · GSTIN: <strong>{classifyResult.extracted.gstin || '—'}</strong></div>
+                  <button onClick={() => setShowNewClientForm(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem', border: '1px solid var(--warning)', borderRadius: '7px', background: 'rgba(245,158,11,0.08)', color: 'var(--warning)', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer' }}>
+                    <UserPlus size={13} /> {showNewClientForm ? 'Hide form' : 'Add as New Client'}
+                  </button>
+                  {showNewClientForm && (
+                    <div style={{ marginTop: '0.75rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                      <input value={newClientFields.clientName} onChange={e => setNewClientFields(p => ({ ...p, clientName: e.target.value }))} placeholder="Legal name" style={{ padding: '0.4rem 0.65rem', border: '1px solid var(--border)', borderRadius: '7px', background: 'var(--bg)', color: 'var(--text)', fontSize: '0.82rem', outline: 'none' }} />
+                      <input value={newClientFields.gstin} onChange={e => setNewClientFields(p => ({ ...p, gstin: e.target.value }))} placeholder="GSTIN" style={{ padding: '0.4rem 0.65rem', border: '1px solid var(--border)', borderRadius: '7px', background: 'var(--bg)', color: 'var(--text)', fontSize: '0.82rem', fontFamily: 'monospace', outline: 'none' }} />
+                    </div>
+                  )}
+                </div>
+              )}
+              {/* Extracted Fields Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem', marginBottom: '1rem' }}>
+                {[
+                  ['Notice Type', classifyResult.extracted.noticeType],
+                  ['Notice Number', classifyResult.extracted.noticeId],
+                  ['Section', classifyResult.extracted.section],
+                  ['Issuing Authority', classifyResult.extracted.issuingAuthority],
+                  ['Issue Date', classifyResult.extracted.issueDate],
+                  ['Due Date', classifyResult.extracted.dueDate],
+                  ['Tax Period', classifyResult.extracted.period],
+                  ['Demand (₹)', classifyResult.extracted.demandAmount ? `₹${Number(classifyResult.extracted.demandAmount).toLocaleString('en-IN')}` : '—'],
+                ].map(([label, value]) => (
+                  <div key={label} style={{ background: 'var(--bg)', borderRadius: '8px', padding: '0.6rem 0.8rem', border: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-soft)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem' }}>{label}</div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 600, color: value && value !== '—' ? 'var(--text)' : 'var(--text-soft)' }}>{value || '—'}</div>
+                  </div>
+                ))}
+              </div>
+              {classifyResult.extracted.facts && (
+                <div style={{ background: 'var(--bg)', borderRadius: '8px', padding: '0.75rem', border: '1px solid var(--border)', marginBottom: '1rem' }}>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-soft)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.35rem' }}>Key Facts Extracted</div>
+                  <div style={{ fontSize: '0.82rem', lineHeight: '1.6', color: 'var(--text-muted)' }}>{classifyResult.extracted.facts}</div>
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button className="btn-primary" style={{ flex: 1, justifyContent: 'center' }}
+                  onClick={() => confirmSaveNotice(showNewClientForm ? newClientFields : {})}>
+                  ✅ Save Notice to Records
+                </button>
+                <button className="btn-secondary" onClick={() => { setShowClassifyModal(false); setClassifyResult(null); }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

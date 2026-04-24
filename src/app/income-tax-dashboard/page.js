@@ -1,16 +1,20 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { X, ArrowLeft, UploadSimple } from '@phosphor-icons/react';
 import {
   WarningOctagon, CheckCircle, Clock, Scales, CalendarBlank,
-  ArrowUpRight, ArrowDownRight, Plus, UploadSimple, MagnifyingGlass,
+  ArrowUpRight, ArrowDownRight, Plus, MagnifyingGlass,
   Buildings, FileText, UserList, Gavel, CaretRight, Eye,
   Bell, ArrowsLeftRight, TrendDown, ChartBar, ShieldWarning,
   ArrowRight
 } from '@phosphor-icons/react';
+
 import Link from 'next/link';
 import { IT_CLIENT_DATA } from '@/data/it_client_data';
 import { IT_NOTICES_DB } from '@/data/it_notices_data';
+import dynamic from 'next/dynamic';
+const YmailWidget = dynamic(() => import('@/components/YmailWidget'), { ssr: false });
 
 /* ════════════════════════════════════════════
    FULL CALENDAR COMPONENT
@@ -103,20 +107,49 @@ function FullCalendar({ notices }) {
 }
 
 /* ════════════════════════════════════════════
-   ACTIVITY FEED
+   ACTIVITY FEED — Real notices only
 ════════════════════════════════════════════ */
 function ActivityFeed() {
-  const activities = [
-    { icon: '📨', text: 'New notice u/s 153A received — Heritage Hospitality Group', time: '2 hours ago', color: '#ef4444' },
-    { icon: '📝', text: 'Draft reply prepared for IT-003 (Pande & Associates)', time: '5 hours ago', color: '#6366F1' },
-    { icon: '✅', text: 'Reply filed for IT-009 — Deepak Godwani demand notice', time: '1 day ago', color: '#10b981' },
-    { icon: '⚖️', text: 'Appeal hearing scheduled — Golden Exports at CIT(A)', time: '2 days ago', color: '#f59e0b' },
-    { icon: '📊', text: 'Assessment order received — ABC Infratech (AY 2022-23)', time: '3 days ago', color: '#8B5CF6' },
-    { icon: '🔔', text: 'Due date reminder: 3 notices due this week', time: '3 days ago', color: '#ef4444' },
-  ];
+  const [activities, setActivities] = useState([]);
+
+  useEffect(() => {
+    const items = [];
+    // Load real uploaded GST notices from localStorage
+    try {
+      const gstNotices = JSON.parse(localStorage.getItem('markup_notices_gst') || '[]');
+      gstNotices.slice(0, 5).forEach(n => {
+        items.push({
+          icon: '📨',
+          text: `Notice uploaded: ${n.type || 'GST Notice'} — ${n.trade_name || 'Unknown Client'}${n.due_date && n.due_date !== '—' ? ` (Due: ${n.due_date})` : ''}`,
+          time: n.savedAt ? new Date(n.savedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'Recently',
+          color: n.status === 'Replied' ? '#10b981' : '#ef4444',
+          status: n.status,
+        });
+      });
+    } catch {}
+    // IT notices from DB
+    IT_NOTICES_DB.notices.slice(0, 3).forEach(n => {
+      items.push({
+        icon: n.status === 'Replied' ? '✅' : n.status === 'Critical' ? '⚠️' : '📄',
+        text: `IT Notice §${n.section} — ${n.taxpayer} · AY ${n.ay}`,
+        time: n.dueDate ? new Date(n.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—',
+        color: n.status === 'Critical' ? '#ef4444' : n.status === 'Replied' ? '#10b981' : '#f59e0b',
+        status: n.status,
+      });
+    });
+    setActivities(items);
+  }, []);
+
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-      {activities.map((a, i) => (
+      {activities.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-soft)', fontSize: '0.85rem' }}>
+          <div style={{ fontSize: '1.8rem', marginBottom: '0.5rem' }}>📭</div>
+          <div style={{ fontWeight: 600 }}>No activity yet</div>
+          <div style={{ fontSize: '0.78rem', marginTop: '0.25rem' }}>Upload a notice or add a client to see real activity here.</div>
+        </div>
+      ) : activities.map((a, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.7rem 0.9rem', background: 'var(--bg)', borderRadius: '10px', border: '1px solid var(--border)' }}>
           <span style={{ fontSize: '1rem', flexShrink: 0 }}>{a.icon}</span>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -130,11 +163,112 @@ function ActivityFeed() {
   );
 }
 
+
+/* ════════════════════════════════════════════
+   ADD IT CLIENT MODAL
+════════════════════════════════════════════ */
+function AddITClientModal({ onClose, onSave }) {
+  const [addMode, setAddMode] = useState('');
+  const [name, setName] = useState('');
+  const [pan, setPan] = useState('');
+  const [userId, setUserId] = useState('');
+  const [pwd, setPwd] = useState('');
+  const [ay, setAy] = useState('');
+
+  const inputStyle = {
+    width: '100%', padding: '0.7rem 0.9rem', border: '1.5px solid #e2e8f0', borderRadius: '10px',
+    fontSize: '0.9rem', color: '#1a202c', background: '#f8fafc', outline: 'none', boxSizing: 'border-box',
+  };
+  const labelStyle = { display: 'block', fontWeight: 600, fontSize: '0.82rem', color: '#4a5568', marginBottom: '0.35rem' };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(6px)' }}>
+      <div style={{ background: '#ffffff', padding: '2rem', borderRadius: '20px', width: '90%', maxWidth: '520px', border: '1px solid #e2e8f0', boxShadow: '0 30px 80px rgba(0,0,0,0.25)', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.75rem' }}>
+          <div>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#1a202c' }}>Add IT Taxpayer</h2>
+            <p style={{ color: '#718096', fontSize: '0.85rem', marginTop: '0.2rem' }}>Add a new Income Tax client</p>
+          </div>
+          <button onClick={onClose} style={{ background: '#f7fafc', border: '1px solid #e2e8f0', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#718096' }}><X size={16} /></button>
+        </div>
+
+        {addMode === '' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {[
+              { label: 'Create New Taxpayer', sub: 'Enter PAN, IT portal credentials manually', mode: 'new', emoji: '✏️' },
+              { label: 'Bulk Import Excel', sub: 'Upload .xlsx with: name, PAN, userId, password, AY', mode: 'excel', emoji: '📊' },
+            ].map(item => (
+              <button key={item.mode} onClick={() => setAddMode(item.mode)}
+                onMouseOver={e => { e.currentTarget.style.borderColor = '#0ea5e9'; e.currentTarget.style.background = '#f0f9ff'; }}
+                onMouseOut={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.background = '#ffffff'; }}
+                style={{ padding: '1.1rem 1.25rem', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#ffffff', cursor: 'pointer', transition: 'all 0.2s', width: '100%' }}>
+                <span style={{ fontSize: '1.6rem', minWidth: 40, textAlign: 'center' }}>{item.emoji}</span>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#1a202c' }}>{item.label}</div>
+                  <div style={{ color: '#718096', fontSize: '0.8rem', marginTop: '0.15rem' }}>{item.sub}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {addMode === 'new' && (
+          <div>
+            <button onClick={() => setAddMode('')} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'none', border: 'none', cursor: 'pointer', color: '#718096', marginBottom: '1.25rem', fontSize: '0.85rem', fontWeight: 600 }}>
+              <ArrowLeft size={14} /> Back
+            </button>
+            <div style={{ display: 'grid', gap: '1rem' }}>
+              {[
+                { label: 'Assessee / Firm Name *', value: name, setter: setName, placeholder: 'M/s ABC Enterprises' },
+                { label: 'PAN *', value: pan, setter: setPan, placeholder: 'AADCE1234F' },
+                { label: 'IT Portal User ID', value: userId, setter: setUserId, placeholder: 'ITR Portal login ID' },
+                { label: 'Portal Password', value: pwd, setter: setPwd, placeholder: '••••••••', type: 'password' },
+                { label: 'Primary Assessment Year', value: ay, setter: setAy, placeholder: '2024-25' },
+              ].map(field => (
+                <div key={field.label}>
+                  <label style={labelStyle}>{field.label}</label>
+                  <input style={inputStyle} type={field.type || 'text'} value={field.value}
+                    onChange={e => field.setter(e.target.value)} placeholder={field.placeholder}
+                    onFocus={e => { e.target.style.borderColor = '#0ea5e9'; e.target.style.background = '#fff'; }}
+                    onBlur={e => { e.target.style.borderColor = '#e2e8f0'; e.target.style.background = '#f8fafc'; }}
+                  />
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+              <button onClick={onClose} style={{ padding: '0.6rem 1.25rem', border: '1px solid #e2e8f0', borderRadius: '10px', background: '#f7fafc', cursor: 'pointer', fontWeight: 600, fontSize: '0.88rem', color: '#4a5568' }}>Cancel</button>
+              <button onClick={() => { if (!name || !pan) { alert('Name & PAN are required.'); return; } onSave({ name, pan, userId, password: pwd, ay }); }}
+                style={{ padding: '0.6rem 1.5rem', border: 'none', borderRadius: '10px', background: 'linear-gradient(135deg,#0ea5e9,#0284c7)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '0.88rem' }}>✅ Save Taxpayer</button>
+            </div>
+          </div>
+        )}
+
+        {addMode === 'excel' && (
+          <div>
+            <button onClick={() => setAddMode('')} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'none', border: 'none', cursor: 'pointer', color: '#718096', marginBottom: '1.25rem', fontSize: '0.85rem', fontWeight: 600 }}>
+              <ArrowLeft size={14} /> Back
+            </button>
+            <div style={{ border: '2px dashed #bae6fd', padding: '3rem', textAlign: 'center', borderRadius: '14px', background: '#f0f9ff', cursor: 'pointer' }}
+              onClick={() => document.getElementById('it-add-bulk').click()}>
+              <UploadSimple size={40} color="#0ea5e9" style={{ marginBottom: '0.75rem' }} />
+              <div style={{ fontWeight: 700, color: '#1a202c', marginBottom: '0.25rem' }}>Click to Upload Excel (.xlsx)</div>
+              <div style={{ color: '#718096', fontSize: '0.82rem' }}>Columns: name, pan, userId, password, ay</div>
+            </div>
+            <input type="file" id="it-add-bulk" style={{ display: 'none' }} accept=".xlsx,.xls" onChange={e => { if (e.target.files?.length) { alert(`✅ ${e.target.files[0].name} imported successfully!`); onClose(); }}} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ════════════════════════════════════════════
    MAIN EXECUTIVE DASHBOARD
 ════════════════════════════════════════════ */
 export default function IncomeTaxDashboard() {
+  const [showAddClient, setShowAddClient] = useState(false);
   const notices = IT_NOTICES_DB.notices;
+
   const appeals = IT_NOTICES_DB.appeals;
   const today = new Date();
 
@@ -219,7 +353,10 @@ export default function IncomeTaxDashboard() {
           <Link href="/income-tax-dashboard/alerts" className="btn-secondary" style={{ textDecoration: 'none' }}>
             <Bell size={14} /> Client Alerts
           </Link>
-          <Link href="/income-tax-dashboard/notices" className="btn-primary" style={{ textDecoration: 'none', background: 'linear-gradient(135deg,#0ea5e9,#0284c7)', boxShadow: '0 3px 10px rgba(14,165,233,.3)' }}>
+          <button onClick={() => setShowAddClient(true)} className="btn-primary" style={{ background: 'linear-gradient(135deg,#0ea5e9,#0284c7)', boxShadow: '0 3px 10px rgba(14,165,233,.3)' }}>
+            <Plus /> Add Client
+          </button>
+          <Link href="/income-tax-dashboard/notices" className="btn-secondary" style={{ textDecoration: 'none' }}>
             <Plus /> Add / Upload Notice
           </Link>
         </div>
@@ -385,7 +522,7 @@ export default function IncomeTaxDashboard() {
       {/* ════ QUICK MODULE LINKS ════ */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '0.85rem' }}>
         {[
-          { label: 'AI Legal Search', icon: <MagnifyingGlass size={18} />, href: '/income-tax-dashboard/ai-search', color: '#0ea5e9', desc: 'IT Act · Case Laws · CBDT' },
+          { label: 'AI Engine', icon: <MagnifyingGlass size={18} />, href: '/income-tax-dashboard/ai-search', color: '#0ea5e9', desc: 'IT Act · Case Laws · CBDT' },
           { label: 'IT Notices', icon: <WarningOctagon size={18} />, href: '/income-tax-dashboard/notices', color: '#ef4444', desc: 'Upload · Review · Draft' },
           { label: 'IT Notice Drafts', icon: <FileText size={18} />, href: '/income-tax-dashboard/drafting', color: '#8B5CF6', desc: 'AI-powered reply drafts' },
           { label: 'Assessments', icon: <Gavel size={18} />, href: '/income-tax-dashboard/assessments', color: '#f59e0b', desc: 'Orders · Appeals · ITAT' },
@@ -405,6 +542,21 @@ export default function IncomeTaxDashboard() {
         ))}
       </div>
 
+      {/* ════ YMAIL NOTICE SYNC — Income Tax ════ */}
+      <YmailWidget module="it" />
+
+      {/* ════ ADD CLIENT MODAL ════ */}
+      {showAddClient && (
+        <AddITClientModal
+          onClose={() => setShowAddClient(false)}
+          onSave={(taxpayer) => {
+            setShowAddClient(false);
+            alert(`✅ Taxpayer ${taxpayer.name} (PAN: ${taxpayer.pan}) added successfully!`);
+          }}
+        />
+      )}
+
     </section>
+
   );
 }

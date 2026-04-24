@@ -29,8 +29,12 @@ const NAV_ITEMS = [
       { label: 'All Clients', href: '/clients', icon: <UserList size={13} /> },
       { label: 'Notices & Matter', href: '/notices', icon: <WarningOctagon size={13} /> },
       { label: 'Litigation Drafts', href: '/legal', icon: <Scales size={13} /> },
-      { label: 'Client Alerts', href: '/comms', icon: <ChatCircleDots size={13} /> },
     ],
+  },
+  {
+    label: 'Client Alerts',
+    href: '/comms',
+    icon: <ChatCircleDots size={15} weight="duotone" color="#f59e0b" />,
   },
 ];
 

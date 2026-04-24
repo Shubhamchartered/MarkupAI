@@ -1,15 +1,15 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const EXTRACTION_PROMPT = `You are a senior GST notice data extraction specialist. Analyse the uploaded notice document and extract ALL available information in the following JSON format. Be extremely precise — extract exact values from the document. If a field is not found, use null.
+const EXTRACTION_PROMPT = `You are a senior GST notice data extraction specialist. Analyse the uploaded notice document and extract ALL available information. Be extremely precise — extract exact values from the document. If a field is not found, use null.
 
-Return ONLY valid JSON, no markdown, no backticks, no explanation before or after:
+Return ONLY valid JSON, no markdown, no backticks, no explanation:
 
 {
-  "notice_type": "string — e.g. SCN, ASMT-10, DRC-01, REG-17, GSTR-3A, MOV-07, RFD-08 etc.",
+  "notice_type": "string — e.g. SCN, ASMT-10, DRC-01, REG-17, GSTR-3A, ADT-01 etc.",
   "notice_category": "string — e.g. Demand & Show Cause, Scrutiny, Registration, Return Non-Filing, ITC Related, Refund, E-Way Bill, Recovery, Appeal etc.",
-  "section": "string — e.g. Section 73, Section 74, Section 61 etc.",
-  "rule": "string — e.g. Rule 142, Rule 99 etc. or null",
-  "form": "string — e.g. DRC-01, ASMT-10, REG-17 etc.",
+  "section": "string — e.g. Section 73, Section 74, Section 61, Section 65 etc.",
+  "rule": "string or null",
+  "form": "string — e.g. DRC-01, ASMT-10 etc.",
   "gstin": "string — 15-digit GSTIN",
   "legal_name": "string — registered legal name",
   "trade_name": "string or null",
@@ -29,12 +29,19 @@ Return ONLY valid JSON, no markdown, no backticks, no explanation before or afte
   "allegations": "string — detailed summary of what the department is alleging",
   "key_issues": ["array of strings — each key issue/discrepancy mentioned"],
   "documents_demanded": ["array of strings — documents/information demanded by the officer"],
-  "hearing_date": "string — DD/MM/YYYY or null",
-  "hearing_time": "string or null",
+  "hearing_date": "string — DD/MM/YYYY of personal hearing date or null",
+  "hearing_time": "string — time of hearing or null",
   "hearing_venue": "string or null",
+  "vc_date": "string — DD/MM/YYYY of video conferencing date or null",
+  "vc_link": "string — video conferencing link/URL or null",
+  "appeal_due_date": "string — DD/MM/YYYY last date to file appeal or null",
+  "assessment_order_date": "string — DD/MM/YYYY if this is an assessment order or null",
+  "is_assessment_order": "boolean — true if this document is an assessment/demand order",
+  "is_appeal_related": "boolean — true if appeal is mentioned or required",
   "risk_level": "string — critical/high/medium/low based on notice severity",
   "urgency": "string — immediate/urgent/normal based on due dates",
-  "raw_text": "string — full text of the notice as extracted"
+  "state": "string — state name from GSTIN prefix or jurisdiction",
+  "raw_text": "string — full extracted text from document"
 }`;
 
 const BRIEF_PROMPT = `You are MARKUP.AI, a senior GST advisory expert. Based on the extracted notice data below, provide a comprehensive brief for the Chartered Accountant. Include:
@@ -62,7 +69,7 @@ export async function POST(request) {
     }
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash", generationConfig: { temperature: 0.1 } });
 
     // Action: Generate brief from already-extracted data
     if (action === "brief" && extractedData) {

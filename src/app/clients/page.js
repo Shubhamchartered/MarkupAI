@@ -292,6 +292,9 @@ export default function ClientsPage() {
     if (urlQuery) setSearchQuery(urlQuery);
   }, [urlQuery]);
 
+  const [revealedRows, setRevealedRows] = useState({});
+  const toggleReveal = (idx) => setRevealedRows(prev => ({ ...prev, [idx]: !prev[idx] }));
+
   const filteredClients = useMemo(() => {
     return clients.filter(c => {
       const qs = searchQuery.toLowerCase();
@@ -370,43 +373,61 @@ export default function ClientsPage() {
       {/* Main Table */}
       <div className="section-card no-pad">
         <div className="table-wrap">
-          <table id="clientTable">
+          <table id="clientTable" style={{ fontSize: '0.75rem' }}>
             <thead>
               <tr>
-                <th className="th-num">#</th>
-                <th className="sortable">User Name <ArrowsDownUp /></th>
-                <th className="sortable">User ID <ArrowsDownUp /></th>
-                <th>Password</th>
-                <th className="sortable">GSTN <ArrowsDownUp /></th>
-                <th>State</th>
-                <th>Actions</th>
+                <th className="th-num" style={{ fontSize: '0.7rem' }}>#</th>
+                <th className="sortable" style={{ fontSize: '0.7rem' }}>User Name <ArrowsDownUp /></th>
+                <th className="sortable" style={{ fontSize: '0.7rem' }}>User ID <ArrowsDownUp /></th>
+                <th style={{ fontSize: '0.7rem' }}>Password</th>
+                <th className="sortable" style={{ fontSize: '0.7rem' }}>GSTN <ArrowsDownUp /></th>
+                <th style={{ fontSize: '0.7rem' }}>State</th>
+                <th style={{ fontSize: '0.7rem', minWidth: '145px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {displayedClients.length === 0 ? (
                 <tr><td colSpan="7" style={{textAlign: 'center', padding: '2rem'}}>No clients found.</td></tr>
               ) : (
-                displayedClients.map((c, i) => (
+                displayedClients.map((c, i) => {
+                  const nameDisplay = (c.userName || '').length > 28 ? (c.userName).substring(0, 28) + '…' : c.userName;
+                  return (
                   <tr key={c.gstn || c.userId || i}>
-                    <td className="td-num">#{pageSize === 'all' ? i + 1 : (currentPage - 1) * pageSize + i + 1}</td>
-                    <td><strong>{c.userName}</strong></td>
-                    <td><span className="badge-outline">{c.userId}</span></td>
-                    <td className="pw-cell">••••••</td>
-                    <td>{c.gstn}</td>
-                    <td>{c.gstn && c.gstn.startsWith('27') ? 'MH(27)' : 'Other'}</td>
-                    <td>
-                      <div style={{display: 'flex', gap: '0.4rem', alignItems: 'center'}}>
-                        <button className="icon-btn-sm tooltip" data-tip="View Notices & Details" onClick={() => setDetailClient(c)}>
-                          <Eye />
+                    <td className="td-num" style={{ padding: '0.5rem 0.5rem', fontSize: '0.72rem' }}>#{pageSize === 'all' ? i + 1 : (currentPage - 1) * pageSize + i + 1}</td>
+                    <td style={{ padding: '0.5rem 0.65rem', maxWidth: '160px' }}>
+                      <strong title={c.userName} style={{ fontSize: '0.75rem' }}>{nameDisplay}</strong>
+                    </td>
+                    <td style={{ padding: '0.5rem 0.65rem' }}><span className="badge-outline" style={{ fontSize: '0.7rem' }}>{c.userId}</span></td>
+                    <td className="pw-cell" style={{ whiteSpace: 'nowrap', padding: '0.5rem 0.65rem' }}>
+                      <span style={{ fontFamily: 'monospace', letterSpacing: '0.08em', fontSize: '0.75rem' }}>
+                        {revealedRows[i] ? (c.password || '—') : '••••••'}
+                      </span>
+                      {c.password && (
+                        <button
+                          onClick={() => toggleReveal(i)}
+                          title={revealedRows[i] ? "Hide password" : "Reveal (CA only)"}
+                          style={{ marginLeft: '0.35rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-soft)', padding: '0.1rem', verticalAlign: 'middle', opacity: 0.7 }}
+                        >
+                          <Eye size={11} />
                         </button>
-                        <button className="icon-btn-sm tooltip" data-tip="Generate Notice Reply"><FileCode /></button>
-                        <button className="btn-secondary" style={{padding: '0.25rem 0.6rem', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.3rem'}} onClick={() => handleGstnLogin(c)}>
-                          <SignIn size={13}/> GSTN Login
+                      )}
+                    </td>
+                    <td style={{ padding: '0.5rem 0.65rem', fontFamily: 'monospace', fontSize: '0.72rem' }}>{c.gstn}</td>
+                    <td style={{ padding: '0.5rem 0.65rem', fontSize: '0.72rem' }}>{c.gstn && c.gstn.startsWith('27') ? 'MH(27)' : 'Other'}</td>
+                    <td style={{ padding: '0.5rem 0.65rem', whiteSpace: 'nowrap' }}>
+                      <div style={{display: 'flex', gap: '0.3rem', alignItems: 'center'}}>
+                        <button className="icon-btn-sm tooltip" data-tip="View Notices & Details" onClick={() => setDetailClient(c)}>
+                          <Eye size={13} />
+                        </button>
+                        <button className="icon-btn-sm tooltip" data-tip="Generate Notice Reply"><FileCode size={13} /></button>
+                        <button className="btn-secondary" style={{padding: '0.2rem 0.5rem', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.25rem'}} onClick={() => handleGstnLogin(c)}>
+                          <SignIn size={11}/> Login
                         </button>
                       </div>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>

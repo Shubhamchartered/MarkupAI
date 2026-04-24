@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { Eraser, PaperPlaneTilt, WhatsappLogo, EnvelopeSimple, CalendarBlank, CaretLeft, CaretRight, Plus, X, UsersThree, MagnifyingGlass } from '@phosphor-icons/react';
+import { Eraser, PaperPlaneTilt, WhatsappLogo, EnvelopeSimple, CalendarBlank, CaretLeft, CaretRight, Plus, X, UsersThree, MagnifyingGlass, GearSix, Pencil } from '@phosphor-icons/react';
 import { CommsEngine } from '@/lib/comms_engine';
 import { CLIENT_DATA } from '@/data/client_data';
 import { getNoticesForClient } from '@/lib/notice_sync';
@@ -77,6 +77,18 @@ export default function CommsPage() {
   const [dueDate, setDueDate] = useState('');
   const [waOutput, setWaOutput] = useState('');
   const [emailOutput, setEmailOutput] = useState('');
+  const [waEdited, setWaEdited] = useState('');
+  const [emailEdited, setEmailEdited] = useState('');
+  const [emailSubject, setEmailSubject] = useState('');
+  // Multi-WhatsApp numbers
+  const [waNumbers, setWaNumbers] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('markup_wa_numbers') || '[]'); } catch { return []; }
+  });
+  const [showWaSettings, setShowWaSettings] = useState(false);
+  const [newWaLabel, setNewWaLabel] = useState('');
+  const [newWaNumber, setNewWaNumber] = useState('');
+  // Bulk modal client search
+  const [bulkClientSearch, setBulkClientSearch] = useState('');
 
   // Client search dropdown
   const [clientSearch, setClientSearch] = useState('');
@@ -144,8 +156,27 @@ export default function CommsPage() {
     if (!trigger || !clientName) { alert("Please select a trigger and provide Client Name."); return; }
     const context = { client_name: clientName, notice_ref: noticeRef, amount, due_date: dueDate };
     const comms = CommsEngine.generate(trigger, context);
-    setWaOutput(comms.whatsapp.replace(/\n/g, '<br/>'));
-    setEmailOutput(comms.email);
+    const waText = comms.whatsapp;
+    const emailText = comms.email;
+    setWaOutput(waText);
+    setEmailOutput(emailText);
+    setWaEdited(waText);
+    const lines = emailText.split('\n');
+    setEmailSubject(lines[0].replace('Subject: ', ''));
+    setEmailEdited(lines.slice(1).join('\n').trim());
+  };
+
+  const saveWaNumber = () => {
+    if (!newWaLabel || !newWaNumber) return;
+    const updated = [...waNumbers, { label: newWaLabel, number: newWaNumber.replace(/\D/g, '') }].slice(0, 3);
+    setWaNumbers(updated);
+    localStorage.setItem('markup_wa_numbers', JSON.stringify(updated));
+    setNewWaLabel(''); setNewWaNumber('');
+  };
+  const removeWaNumber = (i) => {
+    const updated = waNumbers.filter((_, idx) => idx !== i);
+    setWaNumbers(updated);
+    localStorage.setItem('markup_wa_numbers', JSON.stringify(updated));
   };
 
   return (
@@ -258,29 +289,86 @@ export default function CommsPage() {
         {/* RIGHT: Output Previews */}
         <div className="comms-preview-col">
           <div className="comms-card">
-            <h3><WhatsappLogo /> WhatsApp Preview</h3>
-            <div className="wa-preview-box">
-              <div className="wa-header">Client Chat</div>
-              <div className="wa-msg" dangerouslySetInnerHTML={{ __html: waOutput || '<em>Select trigger & generate</em>' }}></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}><WhatsappLogo /> WhatsApp Preview</h3>
+              <button onClick={() => setShowWaSettings(true)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '7px', padding: '0.2rem 0.55rem', fontSize: '0.72rem', cursor: 'pointer', color: 'var(--text-soft)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                <GearSix size={12} /> Manage Numbers
+              </button>
             </div>
-            <button className="btn-secondary" style={{ width: '100%', marginTop: '1rem' }} disabled={!waOutput}
-              onClick={() => { navigator.clipboard.writeText(waOutput.replace(/<br\/>/g, '\n')); alert('Copied!'); }}>
-              Copy for WhatsApp
-            </button>
+            <div className="wa-preview-box">
+              <div className="wa-header">Client Chat · Editable</div>
+              <textarea
+                value={waEdited}
+                onChange={e => setWaEdited(e.target.value)}
+                placeholder="Generate an alert to preview WhatsApp message here. You can edit before sending."
+                style={{ width: '100%', minHeight: '140px', background: 'transparent', border: 'none', outline: 'none', resize: 'vertical', fontFamily: 'inherit', fontSize: '0.85rem', color: 'var(--text)', lineHeight: '1.6', padding: '0.5rem 0' }}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.75rem' }}>
+              <button className="btn-secondary" style={{ width: '100%' }} disabled={!waEdited}
+                onClick={() => { navigator.clipboard.writeText(waEdited); alert('Copied to clipboard!'); }}>
+                <WhatsappLogo size={14} /> Copy for WhatsApp
+              </button>
+              {waNumbers.length > 0 && waNumbers.map((n, i) => (
+                <a key={i} href={`https://wa.me/${n.number}?text=${encodeURIComponent(waEdited)}`} target="_blank" rel="noopener noreferrer"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', padding: '0.5rem', border: '1px solid rgba(37,211,102,0.4)', borderRadius: '8px', background: 'rgba(37,211,102,0.06)', color: '#25D366', fontSize: '0.82rem', fontWeight: 600, textDecoration: 'none' }}>
+                  <WhatsappLogo size={14} /> Send to {n.label}
+                </a>
+              ))}
+            </div>
           </div>
 
           <div className="comms-card" style={{ marginTop: '1.5rem' }}>
-            <h3><EnvelopeSimple /> Email Preview</h3>
-            <div className="email-preview-box">
-              <div className="em-subj" style={{ marginBottom: '0.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
-                <strong>Subject:</strong> {emailOutput ? emailOutput.split('\n')[0].replace('Subject: ', '') : ''}
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem' }}><EnvelopeSimple /> Email Preview</h3>
+            <div className="email-preview-box" style={{ padding: '0.75rem' }}>
+              <div style={{ marginBottom: '0.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <strong style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>Subject:</strong>
+                <input value={emailSubject} onChange={e => setEmailSubject(e.target.value)} placeholder="Email subject line"
+                  style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: '0.83rem', color: 'var(--text)', fontWeight: 600 }} />
               </div>
-              <div className="em-body" style={{ whiteSpace: 'pre-wrap' }}>{emailOutput ? emailOutput.split('\n').slice(1).join('\n').trim() : 'Select trigger & generate'}</div>
+              <textarea
+                value={emailEdited}
+                onChange={e => setEmailEdited(e.target.value)}
+                placeholder="Generate an alert to preview email body here. You can edit before copying."
+                style={{ width: '100%', minHeight: '130px', background: 'transparent', border: 'none', outline: 'none', resize: 'vertical', fontFamily: 'inherit', fontSize: '0.82rem', color: 'var(--text)', lineHeight: '1.6' }}
+              />
             </div>
-            <button className="btn-secondary" style={{ width: '100%', marginTop: '1rem' }} disabled={!emailOutput}>Copy Email</button>
+            <button className="btn-secondary" style={{ width: '100%', marginTop: '0.75rem' }} disabled={!emailEdited}
+              onClick={() => { navigator.clipboard.writeText(`Subject: ${emailSubject}\n\n${emailEdited}`); alert('Email copied!'); }}>
+              Copy Email
+            </button>
           </div>
         </div>
       </div>
+
+      {/* ===== WHATSAPP NUMBERS SETTINGS ===== */}
+      {showWaSettings && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001 }}>
+          <div style={{ background: 'var(--bg-elevated)', padding: '2rem', borderRadius: '16px', width: '90%', maxWidth: '420px', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2 style={{ fontSize: '1rem' }}>📱 Manage WhatsApp Numbers</h2>
+              <button onClick={() => setShowWaSettings(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-soft)' }}><X size={18} /></button>
+            </div>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-soft)', marginBottom: '1rem' }}>Save up to 3 WhatsApp numbers for quick sending. Each number gets a direct Send button.</p>
+            {waNumbers.map((n, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.55rem 0.75rem', border: '1px solid var(--border)', borderRadius: '8px', marginBottom: '0.5rem', background: 'var(--bg)' }}>
+                <WhatsappLogo size={16} color="#25D366" />
+                <span style={{ flex: 1, fontSize: '0.85rem', fontWeight: 600 }}>{n.label}</span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-soft)', fontFamily: 'monospace' }}>+{n.number}</span>
+                <button onClick={() => removeWaNumber(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)' }}><X size={14} /></button>
+              </div>
+            ))}
+            {waNumbers.length < 3 && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '0.5rem', marginTop: '1rem' }}>
+                <input value={newWaLabel} onChange={e => setNewWaLabel(e.target.value)} placeholder="Label (e.g. Client)" style={{ padding: '0.5rem 0.65rem', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--bg)', color: 'var(--text)', fontSize: '0.82rem', outline: 'none' }} />
+                <input value={newWaNumber} onChange={e => setNewWaNumber(e.target.value)} placeholder="Number (with country code)" style={{ padding: '0.5rem 0.65rem', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--bg)', color: 'var(--text)', fontSize: '0.82rem', outline: 'none' }} />
+                <button onClick={saveWaNumber} style={{ padding: '0.5rem 0.75rem', background: '#25D366', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '0.82rem' }}>Add</button>
+              </div>
+            )}
+            <button className="btn-primary" style={{ width: '100%', marginTop: '1.25rem', justifyContent: 'center' }} onClick={() => setShowWaSettings(false)}>Done</button>
+          </div>
+        </div>
+      )}
 
       {/* ===== BULK WHATSAPP MODAL ===== */}
       {showBulkModal && (
@@ -314,20 +402,25 @@ export default function CommsPage() {
             </div>
 
             <div style={{ marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <label className="mf-label">Select Clients ({selectedClients.length} selected)</label>
+              <label className="mf-label">Select Clients ({selectedClients.length} of {CLIENT_DATA.length} selected)</label>
               <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary-color)', fontSize: '0.85rem' }}
-                onClick={() => setSelectedClients(selectedClients.length === CLIENT_DATA.slice(0, 15).length ? [] : CLIENT_DATA.slice(0, 15).map(c => c.userId))}>
-                {selectedClients.length > 0 ? 'Deselect All' : 'Select All'}
+                onClick={() => setSelectedClients(selectedClients.length === CLIENT_DATA.length ? [] : CLIENT_DATA.map(c => c.userId))}>
+                {selectedClients.length === CLIENT_DATA.length ? 'Deselect All' : 'Select All'}
               </button>
             </div>
+            <div style={{ position: 'relative', marginBottom: '0.5rem' }}>
+              <MagnifyingGlass size={13} style={{ position: 'absolute', left: '0.65rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-soft)' }} />
+              <input type="text" placeholder="Search clients…" value={bulkClientSearch} onChange={e => setBulkClientSearch(e.target.value)}
+                style={{ width: '100%', padding: '0.45rem 0.75rem 0.45rem 2rem', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--bg-elevated)', color: 'var(--text)', fontSize: '0.82rem', outline: 'none' }} />
+            </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '8px', marginBottom: '1.5rem' }}>
-              {CLIENT_DATA.slice(0, 15).map((c, i) => (
-                <label key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem 1rem', borderBottom: i < 14 ? '1px solid var(--border)' : 'none', cursor: 'pointer' }}>
+            <div style={{ flex: 1, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '8px', marginBottom: '1.5rem', maxHeight: '240px' }}>
+              {CLIENT_DATA.filter(c => !bulkClientSearch || (c.userName||'').toLowerCase().includes(bulkClientSearch.toLowerCase()) || (c.userId||'').toLowerCase().includes(bulkClientSearch.toLowerCase())).map((c, i, arr) => (
+                <label key={c.userId || i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.65rem 1rem', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer' }}>
                   <input type="checkbox" checked={selectedClients.includes(c.userId)} onChange={() => toggleClient(c)} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 500 }}>{c.userName}</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-soft)' }}>{c.userId} · {c.gstn}</div>
+                    <div style={{ fontWeight: 500, fontSize: '0.85rem' }}>{c.userName}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-soft)' }}>{c.userId} · {c.gstn}</div>
                   </div>
                 </label>
               ))}

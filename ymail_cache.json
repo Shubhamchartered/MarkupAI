@@ -1,0 +1,56 @@
+{
+  "notices": [
+    {
+      "uid": "INBOX:491641",
+      "subject": "Re: Penalty show cause Notice issued in case of M/s. AXEL HOUSING PRIVATE LIMITED, GSTN-27ABDCA3099C1ZS for the GSTR-3B non filer.",
+      "from": "\"Ismail Tadvi\" <stothanevatc002@gmail.com>",
+      "folder": "INBOX",
+      "isTrustedSender": false,
+      "dateReceived": "2026-03-25T12:51:42.000Z",
+      "noticeType": "Show Cause Notice (SCN)",
+      "module": "GST",
+      "isGST": true,
+      "isIT": false,
+      "pansFound": [],
+      "gstinsFound": [
+        "27ABDCA3099C1ZS"
+      ],
+      "attachmentNames": null,
+      "matchedClients": [
+        {
+          "db": "GST",
+          "confidence": "HIGH",
+          "matchType": "GSTIN",
+          "clientName": "AXEL HOUSING PRIVATE LIMITED",
+          "pan": "ABDCA3099C",
+          "gstin": "27ABDCA3099C1ZS",
+          "userId": "GST9833142171"
+        }
+      ],
+      "bodyPreview": "*MOST URGENT*\n*FINAL REMINDER*\n\nOn Sat, Mar 21, 2026 at 1:59 PM Ismail Tadvi <stothanevatc002@gmail.com>\nwrote:\n\n> Dear Taxpayer\n>\n> Please find the attached Penalty SCN and Act accordingly.\n>\n>\n> Thanks & Regards\n> ISMAIL R TADVI\n> STATE TAX OFFICER\n> THA-NOD-C-0002\n> THANE CITY, THANE\n>\n",
+      "status": "new",
+      "addedAt": "2026-04-22T08:14:44.102Z"
+    }
+  ],
+  "gst": {
+    "lastRun": "2026-04-22T08:14:55.194Z",
+    "lastScanned": 1,
+    "lastMatched": 1
+  },
+  "it": {
+    "lastRun": "2026-04-22T08:14:03.563Z",
+    "lastScanned": 0,
+    "lastMatched": 0
+  },
+  "running": {
+    "gst": false,
+    "it": false,
+    "all": false
+  },
+  "settings": {
+    "address": "gandhisanjeev@ymail.com",
+    "appPassword": "tqqkuvbmhhqrdlox",
+    "daysBack": 30,
+    "autoFetchEnabled": true
+  }
+}

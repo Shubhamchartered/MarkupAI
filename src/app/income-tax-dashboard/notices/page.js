@@ -5,11 +5,12 @@ import {
   WarningOctagon, CheckCircle, Clock, CurrencyInr, FileText, UploadSimple,
   X, Eye, ArrowLeft, Scales, MagnifyingGlass, UserList, ArrowsLeftRight,
   CaretRight, CaretDown, Funnel, CloudArrowUp, Spinner, FloppyDisk,
-  PaperPlaneRight, ShieldCheck, ChartBar, Info
+  PaperPlaneRight, ShieldCheck, ChartBar, Info, EnvelopeSimple, ArrowClockwise
 } from '@phosphor-icons/react';
 import { IT_NOTICES_DB, IT_NOTICE_TYPES } from '@/data/it_notices_data';
 import { IT_CLIENT_DATA } from '@/data/it_client_data';
 import { ITDraftingEngine } from '@/lib/it_drafting_engine';
+import { useYmailNotices } from '@/lib/useYmailNotices';
 import Link from 'next/link';
 
 /* ════════════════════════════════════════════
@@ -405,8 +406,34 @@ function NoticeDetail({ notice, onClose }) {
    MAIN PAGE  —  IT Notices (Merged)
 ════════════════════════════════════════════ */
 export default function ITNoticesPage() {
-  const allNotices = IT_NOTICES_DB.notices;
   const allTaxpayers = IT_CLIENT_DATA;
+
+  // Real notices from Ymail
+  const { notices: ymailNotices, loading: ymailLoading, refresh: ymailRefresh } = useYmailNotices('it');
+  // Manually uploaded/OCR extracted notices stored in local state
+  const [uploadedNotices, setUploadedNotices] = useState([]);
+
+  // Map Ymail notices to IT display shape
+  const ymailMapped = ymailNotices.map(n => ({
+    noticeId:      n.notice_id,
+    taxpayer:      n.trade_name || n.matchedClients?.[0]?.clientName || 'Unknown',
+    pan:           n.pan || n.matchedClients?.[0]?.pan || n.pansFound?.[0] || '—',
+    ay:            '—',
+    section:       n.section_it || n.noticeType || '—',
+    type:          n.noticeType || 'IT Notice',
+    dateIssued:    n.issue_date,
+    dueDate:       n.due_date || null,
+    status:        n.status === 'New' ? 'Open' : (n.status || 'Open'),
+    aoName:        n.from || '—',
+    aoDesignation: 'via gandhisanjeev@ymail.com',
+    issuesRaised:  n.bodyPreview ? n.bodyPreview.substring(0, 300) : 'Fetched via Ymail auto-sync',
+    demandAmount:  0,
+    assignedTo:    'CA Admin',
+    source:        'ymail',
+    _ymailData:    n,
+  }));
+
+  const notices = [...ymailMapped, ...uploadedNotices];
 
   const [searchTaxpayer, setSearchTaxpayer] = useState('');
   const [selectedTaxpayer, setSelectedTaxpayer] = useState(null);
@@ -414,7 +441,6 @@ export default function ITNoticesPage() {
   const [filterStatus, setFilterStatus] = useState('');
   const [selectedNotice, setSelectedNotice] = useState(null);
   const [showOCR, setShowOCR] = useState(false);
-  const [notices, setNotices] = useState(allNotices);
   const [expandedCrossAct, setExpandedCrossAct] = useState(null);
   const [activeTab, setActiveTab] = useState('notices'); // 'notices' | 'calendar'
 
@@ -460,9 +486,8 @@ export default function ITNoticesPage() {
       assignedTo: 'CA Admin',
       documents: [],
     };
-    IT_NOTICES_DB.notices.unshift(newNotice);
-    setNotices(prev => [newNotice, ...prev]);
-  }, [notices.length]);
+    setUploadedNotices(prev => [newNotice, ...prev]);
+  }, [uploadedNotices.length]);
 
   return (
     <section className="view active" id="view-it-notices">

@@ -84,6 +84,7 @@ function formatText(text) {
 // ── MAIN PAGE ──────────────────────────────────────────────────────────
 export default function LegalPage() {
   const [step, setStep] = useState(1);
+  // Auto-detected category from OCR — no manual selection needed
   const [selectedCat, setSelectedCat] = useState(null);
 
   // OCR State
@@ -110,7 +111,8 @@ export default function LegalPage() {
   const noticeInputRef = useRef(null);
   const docInputRef = useRef(null);
 
-  const STEPS = ['Select Category', 'Upload & Extract', 'Review & Brief', 'Supporting Docs', 'Generate Draft'];
+  // Steps — Notice category selection is REMOVED; AI auto-detects from upload
+  const STEPS = ['Upload Notice', 'Review & Brief', 'Supporting Docs', 'Generate Draft'];
 
   // Auto scroll to top on every step change
   useEffect(() => {
@@ -118,7 +120,8 @@ export default function LegalPage() {
     document.querySelector('.main-content, main, .view')?.scrollTo({ top: 0, behavior: 'smooth' });
   }, [step]);
 
-  // ── STEP 2: Upload notice & OCR extract ──────────────────────────────
+
+  // ── STEP 1: Upload notice & OCR extract ──────────────────────────────
   const handleNoticeUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -139,7 +142,15 @@ export default function LegalPage() {
         setExtractError(data.error);
       } else {
         setExtractedData(data.extracted);
-        setStep(3); // Auto-advance to review
+        // Auto-detect category from extracted data — no manual selection
+        const noticeType = data.extracted?.notice_type || data.extracted?.section || 'GST Notice';
+        const autoColor = noticeType.includes('74') ? '#EF4444'
+          : noticeType.includes('73') ? '#F59E0B'
+          : noticeType.includes('ASMT') ? '#6366F1'
+          : noticeType.includes('ADT') ? '#8B5CF6'
+          : '#10B981';
+        setSelectedCat({ title: noticeType, color: autoColor, risk: data.extracted?.risk_level || 'medium', autoDetected: true });
+        setStep(2); // Go directly to Review step
       }
     } catch (err) {
       setExtractError('Failed to connect to AI. Please try again.');
@@ -272,70 +283,23 @@ export default function LegalPage() {
 
       <Stepper step={step} steps={STEPS} onStepClick={setStep} />
 
-      {/* ════════════ STEP 1: SELECT CATEGORY ════════════ */}
+      {/* ════════════ STEP 1: UPLOAD NOTICE — AI AUTO-CLASSIFIES ════════════ */}
       {step === 1 && (
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h2 style={{ fontSize: '1rem', fontWeight: 700 }}>Select GST Notice Category</h2>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-soft)' }}>{PROMPT_LIBRARY.categories.length} categories</span>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.8rem', marginBottom: '1.5rem' }}>
-            {PROMPT_LIBRARY.categories.map(cat => (
-              <CategoryCard key={cat.id} cat={cat} selected={selectedCat?.id === cat.id} onClick={() => setSelectedCat(cat)} />
-            ))}
-          </div>
-          {selectedCat && (
-            <div style={{ 
-              position: 'sticky', bottom: 0, zIndex: 10,
-              background: 'var(--bg)', borderTop: '1px solid var(--border)',
-              padding: '1rem 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              marginTop: '1rem'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: 10, height: 10, borderRadius: '50%', background: selectedCat.color }} />
-                <span style={{ fontSize: '0.88rem', fontWeight: 600 }}>{selectedCat.title} selected</span>
-                <span style={{ fontSize: '0.72rem', padding: '0.12rem 0.5rem', borderRadius: '99px', background: RISK_BADGE[selectedCat.risk]?.bg, color: RISK_COLORS[selectedCat.risk], border: `1px solid ${RISK_BADGE[selectedCat.risk]?.border}`, fontWeight: 700 }}>{RISK_LABELS[selectedCat.risk]}</span>
-              </div>
-              <button 
-                className="btn-primary" 
-                onClick={() => setStep(2)} 
-                style={{ background: `linear-gradient(135deg, ${selectedCat.color}, ${selectedCat.color}cc)`, boxShadow: `0 4px 14px ${selectedCat.color}40`, padding: '0.65rem 1.5rem', fontSize: '0.95rem' }}
-              >
-                Proceed to Notice Upload <ArrowRight size={16} weight="bold" />
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ════════════ STEP 2: UPLOAD NOTICE ════════════ */}
-      {step === 2 && (
         <div style={{ maxWidth: '700px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
             <div style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: '0.3rem' }}>Upload the GST Notice</div>
             <p style={{ color: 'var(--text-soft)', fontSize: '0.9rem' }}>
-              Upload a scan, photo, or PDF of the notice. MARKUP.AI will use OCR + AI to extract all details automatically.
+              Upload a scan, photo, or PDF of the notice. MARKUP.AI automatically reads, classifies, and extracts all notice details — <strong>no manual category selection needed.</strong>
             </p>
+            <div style={{ marginTop: '0.75rem', padding: '0.6rem 1rem', background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '10px', fontSize: '0.82rem', color: '#6366F1', display: 'inline-flex', gap: '0.4rem', alignItems: 'center' }}>
+              🤖 AI auto-detects: SCN | DRC-01 | ASMT-10 | ADT-01 | GSTR-3A | Demand Order | Appeal
+            </div>
           </div>
 
-          {/* Category indicator */}
-          {selectedCat && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.5rem', padding: '0.75rem 1rem', background: `${selectedCat.color}10`, border: `1px solid ${selectedCat.color}30`, borderRadius: '10px' }}>
-              <div style={{ width: 4, height: 24, background: selectedCat.color, borderRadius: '99px' }} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{selectedCat.title}</div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-soft)' }}>{selectedCat.sections}</div>
-              </div>
-              <button onClick={() => setStep(1)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '6px', padding: '0.25rem 0.5rem', fontSize: '0.72rem', color: 'var(--text-soft)', cursor: 'pointer' }}>Change</button>
-            </div>
-          )}
-
-          {/* Upload Area */}
           {!isExtracting && !noticeFile && (
             <div style={{
               border: '2px dashed var(--border)', borderRadius: '18px', padding: '3.5rem 2rem',
-              textAlign: 'center', cursor: 'pointer', transition: 'all 0.25s',
-              background: 'var(--bg-elevated)'
+              textAlign: 'center', cursor: 'pointer', transition: 'all 0.25s', background: 'var(--bg-elevated)',
             }}
               onClick={() => noticeInputRef.current?.click()}
               onMouseOver={e => { e.currentTarget.style.borderColor = '#6366F1'; e.currentTarget.style.background = 'rgba(99,102,241,0.04)'; }}
@@ -356,31 +320,18 @@ export default function LegalPage() {
 
           {/* Extracting state */}
           {isExtracting && (
-            <div style={{
-              border: '2px solid #6366F1', borderRadius: '18px', padding: '3rem',
-              textAlign: 'center', background: 'rgba(99,102,241,0.05)'
-            }}>
+            <div style={{ border: '2px solid #6366F1', borderRadius: '18px', padding: '3rem', textAlign: 'center', background: 'rgba(99,102,241,0.05)' }}>
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
                 <div style={{ width: 50, height: 50, border: '3px solid var(--border)', borderTopColor: '#6366F1', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
               </div>
-              <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#6366F1', marginBottom: '0.5rem' }}>🔍 AI is reading your notice...</div>
+              <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#6366F1', marginBottom: '0.5rem' }}>🔍 AI is reading & classifying your notice...</div>
               <div style={{ color: 'var(--text-soft)', fontSize: '0.88rem', lineHeight: '1.6' }}>
                 Processing: <strong>{noticeFile?.name}</strong><br />
-                Extracting GSTIN, dates, amounts, allegations, jurisdiction...
-              </div>
-              <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                {['OCR Scan', 'Data Parse', 'Structure'].map((s, i) => (
-                  <span key={s} style={{
-                    padding: '0.3rem 0.8rem', borderRadius: '99px', fontSize: '0.72rem', fontWeight: 600,
-                    background: i === 0 ? '#6366F1' : 'var(--bg)', color: i === 0 ? '#fff' : 'var(--text-soft)',
-                    border: '1px solid var(--border)', animation: i === 0 ? 'pulse 1.5s infinite' : 'none'
-                  }}>{s}</span>
-                ))}
+                Extracting: GSTIN · Section · Period · Demand · Allegations · Hearing Date...
               </div>
             </div>
           )}
 
-          {/* File uploaded but error */}
           {noticeFile && !isExtracting && extractError && (
             <div style={{ border: '1px solid #EF444440', borderRadius: '14px', padding: '1.5rem', background: 'rgba(239,68,68,0.06)', textAlign: 'center' }}>
               <Warning size={32} color="#EF4444" style={{ marginBottom: '0.75rem' }} />
@@ -390,22 +341,23 @@ export default function LegalPage() {
             </div>
           )}
 
-          {/* File uploaded successfully — re-upload option */}
           {noticeFile && !isExtracting && extractedData && (
             <div style={{ border: '1px solid #10B98140', borderRadius: '14px', padding: '1.25rem', background: 'rgba(16,185,129,0.06)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <CheckCircle size={28} color="#10B981" />
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, color: '#10B981' }}>Notice Extracted Successfully</div>
+                <div style={{ fontWeight: 700, color: '#10B981' }}>Notice Classified: {selectedCat?.title || 'GST Notice'}</div>
                 <div style={{ fontSize: '0.82rem', color: 'var(--text-soft)' }}>{noticeFile.name} — proceed to review extracted data</div>
               </div>
-              <button className="btn-primary" onClick={() => setStep(3)}>Review Data <ArrowRight size={14} /></button>
+              <button className="btn-primary" onClick={() => setStep(2)}>Review Data <ArrowRight size={14} /></button>
             </div>
           )}
         </div>
       )}
 
-      {/* ════════════ STEP 3: REVIEW EXTRACTED DATA + AI BRIEF ════════════ */}
-      {step === 3 && extractedData && (
+
+
+      {/* ════════════ STEP 2: REVIEW EXTRACTED DATA + AI BRIEF ════════════ */}
+      {step === 2 && extractedData && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', alignItems: 'start' }}>
           {/* Left: Extracted Data */}
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden' }}>
@@ -485,8 +437,8 @@ export default function LegalPage() {
             </div>
 
             <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-              <button className="btn-secondary" onClick={() => setStep(2)}>← Re-upload</button>
-              <button className="btn-primary" onClick={() => setStep(4)}>Proceed to Documents <ArrowRight size={14} /></button>
+              <button className="btn-secondary" onClick={() => setStep(1)}>← Re-upload</button>
+              <button className="btn-primary" onClick={() => setStep(3)}>Proceed to Documents <ArrowRight size={14} /></button>
             </div>
           </div>
 
@@ -544,8 +496,8 @@ export default function LegalPage() {
         </div>
       )}
 
-      {/* ════════════ STEP 4: SUPPORTING DOCUMENTS ════════════ */}
-      {step === 4 && (
+      {/* ════════════ STEP 3: SUPPORTING DOCUMENTS ════════════ */}
+      {step === 3 && (
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '16px', padding: '1.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.3rem' }}>
@@ -625,8 +577,8 @@ export default function LegalPage() {
             </div>
 
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-              <button className="btn-secondary" onClick={() => setStep(3)}>← Back to Review</button>
-              <button className="btn-primary" onClick={() => { setStep(5); generateDraft(); }} style={{ minWidth: '220px' }}>
+              <button className="btn-secondary" onClick={() => setStep(2)}>← Back to Review</button>
+              <button className="btn-primary" onClick={() => { setStep(4); generateDraft(); }} style={{ minWidth: '220px' }}>
                 <MagicWand size={16} /> Generate AI Draft
               </button>
             </div>
@@ -634,8 +586,8 @@ export default function LegalPage() {
         </div>
       )}
 
-      {/* ════════════ STEP 5: GENERATED DRAFT ════════════ */}
-      {step === 5 && (
+      {/* ════════════ STEP 4: GENERATED DRAFT ════════════ */}
+      {step === 4 && (
         <div>
           {isGenerating ? (
             <div style={{ maxWidth: '600px', margin: '0 auto', textAlign: 'center', padding: '4rem 2rem' }}>
@@ -683,7 +635,7 @@ export default function LegalPage() {
       )}
 
       {/* ════════════ SAVED DRAFTS ════════════ */}
-      {savedDrafts.length > 0 && step !== 5 && (
+      {savedDrafts.length > 0 && step !== 4 && (
         <div style={{ marginTop: '2.5rem' }}>
           <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem' }}>
             Saved Drafts <span style={{ background: '#6366F1', color: '#fff', borderRadius: '99px', padding: '0.1rem 0.5rem', fontSize: '0.72rem' }}>{savedDrafts.length}</span>

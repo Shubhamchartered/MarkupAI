@@ -113,39 +113,9 @@ export default function AISearchPage() {
   return (
     <section className="view active" id="view-it-search" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
 
-      {/* ── Header ── */}
-      <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, background: 'var(--bg-surface)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-          <div style={{ width: 40, height: 40, borderRadius: '12px', background: 'linear-gradient(135deg,#0ea5e9,#0284c7)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(14,165,233,0.35)' }}>
-            <MagnifyingGlass size={20} weight="bold" color="#fff" />
-          </div>
-          <div>
-            <div style={{ fontWeight: 800, fontSize: '1rem', lineHeight: 1.2 }}>TaxGuard AI — Legal Search Engine</div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-soft)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>IT ACT 1961 · IT ACT 2025 · CBDT Circulars · SC / HC / ITAT Case Laws</div>
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <Link href="/income-tax-dashboard" className="btn-secondary" style={{ textDecoration: 'none', fontSize: '0.8rem', padding: '0.4rem 0.85rem' }}>
-            <ArrowLeft size={12} /> Dashboard
-          </Link>
-          <button className={`btn-secondary ${showFilters ? '' : ''}`} onClick={() => setShowFilters(v => !v)} style={{ fontSize: '0.8rem', padding: '0.4rem 0.85rem', borderColor: showFilters ? '#0ea5e9' : undefined, color: showFilters ? '#0ea5e9' : undefined }}>
-            <Funnel size={13} /> Filters
-          </button>
-          <button className="btn-secondary" onClick={() => fileRef.current?.click()} title="Attach document" style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', position: 'relative' }}>
-            <Paperclip size={13} /> Attach
-            {attachedFiles.length > 0 && <span style={{ position: 'absolute', top: -5, right: -5, background: '#0ea5e9', color: '#fff', borderRadius: '50%', width: 16, height: 16, fontSize: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>{attachedFiles.length}</span>}
-          </button>
-          {messages.length > 0 && (
-            <button className="btn-secondary" onClick={() => setMessages([])} title="Clear" style={{ padding: '0.4rem 0.5rem' }}>
-              <ArrowClockwise size={14} />
-            </button>
-          )}
-        </div>
-      </div>
-
       <input ref={fileRef} type="file" multiple accept=".pdf,.docx,.xlsx,.jpg,.jpeg,.png" style={{ display: 'none' }} onChange={e => handleFiles(e.target.files)} />
 
-      {/* ── Filters ── */}
+      {/* ── Filters panel (collapsible) ── */}
       {showFilters && (
         <div style={{ padding: '0.75rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', gap: '0.75rem', flexWrap: 'wrap', background: 'var(--bg-elevated)', flexShrink: 0 }}>
           <select className="filter-select" value={filters.act} onChange={e => setFilters(p => ({ ...p, act: e.target.value }))}>
@@ -165,11 +135,11 @@ export default function AISearchPage() {
             <option value="High Court">High Court</option>
             <option value="ITAT">ITAT</option>
           </select>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-soft)', alignSelf: 'center', marginLeft: '0.25rem' }}>Filters narrow AI search context</span>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-soft)', alignSelf: 'center' }}>Filters narrow AI search context</span>
         </div>
       )}
 
-      {/* ── Attached file chips (above messages) ── */}
+      {/* ── Attached file chips ── */}
       {attachedFiles.length > 0 && (
         <div style={{ padding: '0.6rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center', flexShrink: 0, background: 'rgba(14,165,233,0.04)' }}>
           <span style={{ fontSize: '0.72rem', color: 'var(--text-soft)', fontWeight: 600, marginRight: '0.25rem' }}>📎 Attached:</span>
@@ -179,11 +149,11 @@ export default function AISearchPage() {
               <button onClick={() => removeFile(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0ea5e9', padding: 0, lineHeight: 1 }}><X size={10} /></button>
             </span>
           ))}
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-soft)' }}>— will be included in next query for context</span>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-soft)' }}>— included in next query</span>
         </div>
       )}
 
-      {/* ── Drop zone overlay when dragging ── */}
+      {/* ── Drop zone ── */}
       <div
         onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
         onDragLeave={() => setIsDragging(false)}
@@ -201,15 +171,20 @@ export default function AISearchPage() {
 
         {/* ── Empty state ── */}
         {messages.length === 0 ? (
-          <div style={{ textAlign: 'center', marginTop: '3%' }}>
+          <div style={{ textAlign: 'center', marginTop: '4%' }}>
             <div style={{ marginBottom: '2.5rem' }}>
-              <div style={{ fontSize: '2.5rem', fontWeight: 900, letterSpacing: '-1px', marginBottom: '0.5rem' }}>
-                <span style={{ background: 'linear-gradient(135deg,#0ea5e9,#0284c7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>TaxGuard AI</span>{' '}Legal Search
+              <div style={{ fontSize: '2.6rem', fontWeight: 900, letterSpacing: '-1px', marginBottom: '0.5rem' }}>
+                Welcome to&nbsp;
+                <span style={{ background: 'linear-gradient(135deg,#0ea5e9,#0284c7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                  M A R K U P . A I
+                </span>
               </div>
-              <div style={{ fontSize: '0.95rem', color: 'var(--text-soft)', fontWeight: 500 }}>Search Income Tax law, case laws, and circulars — upload a notice for instant context</div>
-              <div style={{ width: 60, height: 3, background: 'linear-gradient(90deg,#0ea5e9,#0284c7)', margin: '1rem auto', borderRadius: '99px' }} />
-              {/* Upload prompt */}
-              <button onClick={() => fileRef.current?.click()} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.25rem', background: 'rgba(14,165,233,0.08)', border: '1px dashed rgba(14,165,233,0.35)', borderRadius: '99px', cursor: 'pointer', color: '#0ea5e9', fontWeight: 600, fontSize: '0.85rem', marginTop: '0.5rem' }}>
+              <div style={{ fontSize: '1.1rem', color: 'var(--text-soft)', fontWeight: 600 }}>Your AI Income Tax Expert — Draft · Research · Analyse</div>
+              <div style={{ width: 60, height: 3, background: 'linear-gradient(90deg,#0ea5e9,#0284c7)', margin: '0.85rem auto', borderRadius: '99px' }} />
+              <div style={{ fontSize: '0.88rem', color: 'var(--text-soft)', maxWidth: '520px', margin: '0 auto', lineHeight: '1.7', fontStyle: 'italic' }}>
+                Your Solution for Income Tax law, draft notice replies, analyse assessment orders, or get legal strategy advice.
+              </div>
+              <button onClick={() => fileRef.current?.click()} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.25rem', background: 'rgba(14,165,233,0.08)', border: '1px dashed rgba(14,165,233,0.35)', borderRadius: '99px', cursor: 'pointer', color: '#0ea5e9', fontWeight: 600, fontSize: '0.85rem', marginTop: '1rem' }}>
                 <CloudArrowUp size={16} /> Attach notice / document for AI context
               </button>
             </div>
@@ -280,7 +255,23 @@ export default function AISearchPage() {
       </div>
 
       {/* ── Input ── */}
-      <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', background: 'var(--bg)', flexShrink: 0 }}>
+      <div style={{ padding: '0.75rem 1.5rem 1rem', borderTop: '1px solid var(--border)', background: 'var(--bg)', flexShrink: 0 }}>
+        {/* Toolbar strip */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.55rem' }}>
+          <div style={{ display: 'flex', gap: '0.4rem' }}>
+            <button onClick={() => setShowFilters(v => !v)} style={{ padding: '0.22rem 0.65rem', borderRadius: '99px', fontSize: '0.73rem', fontWeight: 600, cursor: 'pointer', border: showFilters ? '1px solid #0ea5e9' : '1px solid var(--border)', background: showFilters ? 'rgba(14,165,233,0.12)' : 'var(--bg-elevated)', color: showFilters ? '#0ea5e9' : 'var(--text-soft)', transition: 'all 0.2s' }}>
+              ⊞ Filters
+            </button>
+            <button onClick={() => fileRef.current?.click()} style={{ padding: '0.22rem 0.65rem', borderRadius: '99px', fontSize: '0.73rem', fontWeight: 600, cursor: 'pointer', border: attachedFiles.length > 0 ? '1px solid #0ea5e9' : '1px solid var(--border)', background: attachedFiles.length > 0 ? 'rgba(14,165,233,0.12)' : 'var(--bg-elevated)', color: attachedFiles.length > 0 ? '#0ea5e9' : 'var(--text-soft)', transition: 'all 0.2s' }}>
+              📎 {attachedFiles.length > 0 ? `${attachedFiles.length} file(s)` : 'Attach'}
+            </button>
+          </div>
+          {messages.length > 0 && (
+            <button onClick={() => setMessages([])} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.22rem 0.6rem', borderRadius: '99px', fontSize: '0.73rem', fontWeight: 600, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-soft)', cursor: 'pointer' }}>
+              <ArrowClockwise size={11} /> Clear
+            </button>
+          )}
+        </div>
         <div style={{ display: 'flex', gap: '0.5rem', background: 'var(--bg-elevated)', border: `1px solid ${attachedFiles.length > 0 ? 'rgba(14,165,233,0.4)' : 'var(--border)'}`, borderRadius: '24px', padding: '0.6rem 0.6rem 0.6rem 1.1rem', alignItems: 'center', boxShadow: attachedFiles.length > 0 ? '0 0 0 3px rgba(14,165,233,0.1)' : 'none', transition: 'all 0.2s' }}>
           <button onClick={() => fileRef.current?.click()} title="Attach file" style={{ background: 'none', border: 'none', cursor: 'pointer', color: attachedFiles.length > 0 ? '#0ea5e9' : 'var(--text-soft)', padding: '0.2rem', flexShrink: 0, transition: 'color 0.2s' }}>
             <Paperclip size={16} />
